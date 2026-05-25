@@ -4,3 +4,5 @@ __pycache__/
 
 # Large raw data should stay local or move to Git LFS.
 data/ctd/*.tsv.gz
+.vercel
+.env*

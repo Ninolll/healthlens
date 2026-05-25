@@ -15,9 +15,6 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: healthlens
     env:
       VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
       VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
@@ -34,9 +31,11 @@ jobs:
           cache-dependency-path: healthlens/package-lock.json
 
       - name: Install dependencies
+        working-directory: healthlens
         run: npm ci
 
       - name: Lint
+        working-directory: healthlens
         run: npm run lint
 
       - name: Install Vercel CLI
