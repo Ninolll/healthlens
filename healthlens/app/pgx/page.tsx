@@ -25,28 +25,28 @@ const statusConfig: Record<
   { chip: string; label: string; border: string; recBorder: string }
 > = {
   caution: {
-    chip: "bg-amber-50 text-amber-700",
+    chip: "bg-[#f8f1e6] text-[#8a6334]",
     label: "⚠️ Caution",
-    border: "border-amber-100",
-    recBorder: "border-l-amber-400",
+    border: "border-[#ead7bd]",
+    recBorder: "border-l-[#c79b5b]",
   },
   danger: {
-    chip: "bg-red-50 text-red-600",
+    chip: "bg-[#fceeee] text-[#9d3f3f]",
     label: "⛔ High Risk",
-    border: "border-red-100",
-    recBorder: "border-l-red-400",
+    border: "border-[#efcaca]",
+    recBorder: "border-l-[#c76d6d]",
   },
   safe: {
-    chip: "bg-teal-50 text-teal-700",
+    chip: "bg-[#eef7f4] text-[#347b73]",
     label: "✓ Safe",
-    border: "border-teal-100",
-    recBorder: "border-l-teal-400",
+    border: "border-[#c8ded8]",
+    recBorder: "border-l-[#6ba79e]",
   },
   unknown: {
-    chip: "bg-gray-100 text-gray-500",
+    chip: "bg-[#eef1ef] text-slate-500",
     label: "No Data",
-    border: "border-gray-100",
-    recBorder: "border-l-gray-300",
+    border: "border-[#dfe8e3]",
+    recBorder: "border-l-[#b9c5c0]",
   },
 };
 
@@ -149,14 +149,14 @@ export default function PgxPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex justify-center items-start py-8 px-4 pb-24">
+    <div className="min-h-screen bg-[#f6f8f5] flex justify-center items-start py-8 px-4 pb-24">
       <div className="w-full max-w-sm">
         <div className="mb-5">
-          <p className="text-xs font-semibold tracking-widest text-gray-400 uppercase mb-1">
+          <p className="text-xs font-semibold tracking-widest text-slate-400 uppercase mb-1">
             Drug Safety
           </p>
           <h1
-            className="text-2xl font-bold text-gray-800"
+            className="text-2xl font-bold text-slate-800"
             style={{ fontFamily: "'DM Serif Display', serif" }}
           >
             Medication
@@ -166,23 +166,23 @@ export default function PgxPage() {
         </div>
 
         {!submitted ? (
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-            <p className="text-sm font-semibold text-gray-700 mb-1">
+          <div className="bg-white rounded-[1.75rem] border border-[#dfe8e3] shadow-[0_8px_22px_rgba(45,65,59,0.05)] p-5">
+            <p className="text-sm font-semibold text-slate-700 mb-1">
               Run PGx safety check
             </p>
-            <p className="text-xs text-gray-400 mb-4">
+            <p className="text-xs text-slate-400 mb-4">
               CPIC lookup uses exact metadata, not RAG
             </p>
 
             <div className="space-y-3 mb-4">
               <label>
-                <span className="text-xs text-gray-400 font-medium mb-1 block">
+                <span className="text-xs text-slate-400 font-medium mb-1 block">
                   CYP2C19 diplotype
                 </span>
                 <select
                   value={diplotype}
                   onChange={(e) => setDiplotype(e.target.value)}
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-800 focus:outline-none focus:border-teal-400"
+                  className="w-full border border-[#dfe8e3] bg-[#fbfcfb] rounded-2xl px-3 py-2 text-sm text-slate-800 focus:outline-none focus:border-[#6ba79e]"
                 >
                   {Object.keys(phenotypeMap).map((option) => (
                     <option key={option}>{option}</option>
@@ -192,13 +192,13 @@ export default function PgxPage() {
               </label>
 
               <label>
-                <span className="text-xs text-gray-400 font-medium mb-1 block">
+                <span className="text-xs text-slate-400 font-medium mb-1 block">
                   Current medication
                 </span>
                 <select
                   value={drug}
                   onChange={(e) => setDrug(e.target.value)}
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-800 focus:outline-none focus:border-teal-400"
+                  className="w-full border border-[#dfe8e3] bg-[#fbfcfb] rounded-2xl px-3 py-2 text-sm text-slate-800 focus:outline-none focus:border-[#6ba79e]"
                 >
                   <option>Clopidogrel</option>
                   <option>Warfarin</option>
@@ -207,13 +207,13 @@ export default function PgxPage() {
               </label>
 
               <label>
-                <span className="text-xs text-gray-400 font-medium mb-1 block">
+                <span className="text-xs text-slate-400 font-medium mb-1 block">
                   Clinical indication
                 </span>
                 <select
                   value={indication}
                   onChange={(e) => setIndication(e.target.value as Indication)}
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-800 focus:outline-none focus:border-teal-400"
+                  className="w-full border border-[#dfe8e3] bg-[#fbfcfb] rounded-2xl px-3 py-2 text-sm text-slate-800 focus:outline-none focus:border-[#6ba79e]"
                 >
                   <option value="acs_pci">ACS/PCI</option>
                   <option value="neurovascular">Stroke/TIA</option>
@@ -225,7 +225,7 @@ export default function PgxPage() {
             <button
               onClick={handleSubmit}
               disabled={analysing}
-              className="w-full py-3 bg-teal-600 text-white rounded-xl font-semibold text-sm disabled:opacity-40 hover:bg-teal-700 transition-colors"
+              className="w-full py-3 bg-[#347b73] text-white rounded-[1.25rem] font-semibold text-sm disabled:opacity-40 hover:bg-[#286961] transition-colors"
             >
               {analysing ? "Checking compatibility..." : "Check Drug Safety →"}
             </button>
@@ -235,13 +235,13 @@ export default function PgxPage() {
             <div
               className={`${
                 result.status === "danger"
-                  ? "bg-red-50 border-red-200"
+                  ? "bg-[#fceeee] border-[#efcaca]"
                   : result.status === "caution"
-                    ? "bg-amber-50 border-amber-200"
-                    : "bg-teal-50 border-teal-100"
-              } border rounded-2xl p-4 mb-5`}
+                    ? "bg-[#f8f1e6] border-[#ead7bd]"
+                    : "bg-[#eef7f4] border-[#c8ded8]"
+              } border rounded-[1.75rem] p-4 mb-5`}
             >
-              <p className="text-sm font-bold text-gray-800">
+              <p className="text-sm font-bold text-slate-800">
                 {result.status === "danger"
                   ? "⛔ High Alert Found"
                   : result.status === "caution"
@@ -250,28 +250,28 @@ export default function PgxPage() {
                       ? "No Guideline Found"
                       : "✓ Standard Use Supported"}
               </p>
-              <p className="text-xs text-gray-400 mt-0.5">
+              <p className="text-xs text-slate-500 mt-0.5">
                 Based on {diplotype} and {indicationLabels[indication]}
               </p>
             </div>
 
-            <p className="text-xs font-semibold tracking-widest text-gray-400 uppercase mb-3">
+            <p className="text-xs font-semibold tracking-widest text-slate-400 uppercase mb-3">
               Recommendation
             </p>
             <div
               className={`bg-white border ${
                 statusConfig[result.status].border
-              } rounded-2xl p-4 shadow-sm`}
+              } rounded-[1.75rem] p-4 shadow-[0_8px_22px_rgba(45,65,59,0.05)]`}
             >
               <div className="flex justify-between items-start mb-3">
                 <div>
-                  <p className="text-sm font-bold text-gray-800">
+                  <p className="text-sm font-bold text-slate-800">
                     {result.name}
                   </p>
-                  <p className="text-xs text-gray-400 mt-0.5">{result.gene}</p>
+                  <p className="text-xs text-slate-400 mt-0.5">{result.gene}</p>
                 </div>
                 <span
-                  className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+                  className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
                     statusConfig[result.status].chip
                   }`}
                 >
@@ -279,7 +279,7 @@ export default function PgxPage() {
                 </span>
               </div>
               <div
-                className={`text-xs text-gray-500 leading-relaxed p-3 bg-gray-50 rounded-xl border-l-2 ${
+                className={`text-xs text-slate-500 leading-relaxed p-3 bg-[#f8faf8] rounded-2xl border-l-2 ${
                   statusConfig[result.status].recBorder
                 } mb-3`}
               >
@@ -287,14 +287,14 @@ export default function PgxPage() {
               </div>
 
               <div className="mb-3">
-                <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-2">
+                <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-2">
                   Evidence trace
                 </p>
                 <div className="space-y-1.5">
                   {result.evidence.map((item) => (
                     <p
                       key={item}
-                      className="text-[11px] text-gray-500 leading-relaxed"
+                      className="text-[11px] text-slate-500 leading-relaxed"
                     >
                       • {item}
                     </p>
@@ -304,14 +304,14 @@ export default function PgxPage() {
 
               {result.alternatives.length > 0 && (
                 <div>
-                  <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-2">
+                  <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-2">
                     Suggested alternatives
                   </p>
                   <div className="flex gap-2 flex-wrap">
                     {result.alternatives.map((a) => (
                       <span
                         key={a}
-                        className="text-xs px-3 py-1 bg-teal-50 text-teal-700 border border-teal-100 rounded-full font-medium"
+                        className="text-xs px-3 py-1 bg-[#eef7f4] text-[#347b73] border border-[#c8ded8] rounded-full font-medium"
                       >
                         {a}
                       </span>
@@ -320,17 +320,17 @@ export default function PgxPage() {
                 </div>
               )}
 
-              <p className="text-[10px] text-gray-300 mt-3">{result.badge}</p>
+              <p className="text-[10px] text-slate-300 mt-3">{result.badge}</p>
             </div>
 
             <button
               onClick={() => setSubmitted(false)}
-              className="w-full mt-4 py-3 border border-gray-200 text-gray-500 rounded-xl text-sm font-medium hover:bg-gray-100 transition-colors"
+              className="w-full mt-4 py-3 border border-[#dfe8e3] text-slate-500 rounded-[1.25rem] text-sm font-medium hover:bg-white transition-colors"
             >
               ← Enter new query
             </button>
 
-            <p className="text-[10px] text-gray-300 text-center mt-3">
+            <p className="text-[10px] text-slate-300 text-center mt-3">
               Source: CPIC Guidelines 2022 · Always consult your prescriber
             </p>
           </>
@@ -350,13 +350,15 @@ function NavBar({ active }: { active: string }) {
     { href: "/pgx", icon: "💊", label: "PGx" },
   ];
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 flex justify-around py-3 px-4">
+    <div className="fixed bottom-0 left-0 right-0 bg-white/95 border-t border-[#dfe8e3] flex justify-around py-3 px-4 backdrop-blur">
       {items.map((i) => (
         <Link
           key={i.href}
           href={i.href}
           className={`flex flex-col items-center gap-0.5 ${
-            active === i.label.toLowerCase() ? "text-teal-600" : "text-gray-400"
+            active === i.label.toLowerCase()
+              ? "text-[#347b73]"
+              : "text-slate-400"
           }`}
         >
           <span className="text-xl">{i.icon}</span>

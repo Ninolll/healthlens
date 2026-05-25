@@ -34,19 +34,19 @@ const statusConfig: Record<
   { chip: string; label: string; border: string }
 > = {
   risk: {
-    chip: "bg-red-50 text-red-600",
+    chip: "bg-[#fceeee] text-[#9d3f3f]",
     label: "High impact",
-    border: "border-red-100",
+    border: "border-[#efcaca]",
   },
   moderate: {
-    chip: "bg-amber-50 text-amber-700",
+    chip: "bg-[#f8f1e6] text-[#8a6334]",
     label: "Moderate",
-    border: "border-amber-100",
+    border: "border-[#ead7bd]",
   },
   safe: {
-    chip: "bg-teal-50 text-teal-700",
+    chip: "bg-[#eef7f4] text-[#347b73]",
     label: "Standard",
-    border: "border-teal-100",
+    border: "border-[#c8ded8]",
   },
 };
 
@@ -57,14 +57,14 @@ export default function DnaPage() {
   const result = diplotypes.find((d) => d.diplotype === selected);
 
   return (
-    <div className="min-h-screen bg-gray-50 flex justify-center items-start py-8 px-4 pb-24">
+    <div className="min-h-screen bg-[#f6f8f5] flex justify-center items-start py-8 px-4 pb-24">
       <div className="w-full max-w-sm">
         <div className="mb-5">
-          <p className="text-xs font-semibold tracking-widest text-gray-400 uppercase mb-1">
+          <p className="text-xs font-semibold tracking-widest text-slate-400 uppercase mb-1">
             DNA Analysis
           </p>
           <h1
-            className="text-2xl font-bold text-gray-800"
+            className="text-2xl font-bold text-slate-800"
             style={{ fontFamily: "'DM Serif Display', serif" }}
           >
             CYP2C19
@@ -74,11 +74,11 @@ export default function DnaPage() {
         </div>
 
         {!submitted ? (
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-            <p className="text-sm font-semibold text-gray-700 mb-1">
+          <div className="bg-white rounded-[1.75rem] border border-[#dfe8e3] shadow-[0_8px_22px_rgba(45,65,59,0.05)] p-5">
+            <p className="text-sm font-semibold text-slate-700 mb-1">
               Select your diplotype
             </p>
-            <p className="text-xs text-gray-400 mb-4">
+            <p className="text-xs text-slate-400 mb-4">
               v1 uses direct star allele input
             </p>
 
@@ -86,20 +86,20 @@ export default function DnaPage() {
               {diplotypes.map((item) => (
                 <label
                   key={item.diplotype}
-                  className="flex items-center gap-3 p-3 border border-gray-100 rounded-xl cursor-pointer hover:bg-gray-50"
+                  className="flex items-center gap-3 p-3 border border-[#dfe8e3] rounded-2xl cursor-pointer hover:bg-[#f8faf8]"
                 >
                   <input
                     type="radio"
                     name="diplotype"
                     checked={selected === item.diplotype}
                     onChange={() => setSelected(item.diplotype)}
-                    className="accent-teal-600 w-4 h-4"
+                    className="accent-[#347b73] w-4 h-4"
                   />
                   <div>
-                    <span className="text-sm font-medium text-gray-700">
+                    <span className="text-sm font-medium text-slate-700">
                       {item.diplotype}
                     </span>
-                    <p className="text-xs text-gray-400">{item.phenotype}</p>
+                    <p className="text-xs text-slate-400">{item.phenotype}</p>
                   </div>
                 </label>
               ))}
@@ -107,58 +107,58 @@ export default function DnaPage() {
 
             <button
               onClick={() => setSubmitted(true)}
-              className="w-full py-3 bg-teal-600 text-white rounded-xl font-semibold text-sm hover:bg-teal-700 transition-colors"
+              className="w-full py-3 bg-[#347b73] text-white rounded-[1.25rem] font-semibold text-sm hover:bg-[#286961] transition-colors"
             >
               Map Phenotype →
             </button>
           </div>
         ) : result ? (
           <>
-            <div className="bg-teal-50 border border-teal-100 rounded-2xl p-4 flex items-center gap-3 mb-5">
+            <div className="bg-[#eef7f4] border border-[#c8ded8] rounded-[1.75rem] p-4 flex items-center gap-3 mb-5">
               <span className="text-3xl">🧬</span>
               <div>
-                <p className="text-sm font-semibold text-gray-800">
+                <p className="text-sm font-semibold text-slate-800">
                   Phenotype Mapped
                 </p>
-                <p className="text-xs text-gray-400">
+                <p className="text-xs text-slate-400">
                   CPIC Diplotype-Phenotype Table
                 </p>
               </div>
             </div>
 
-            <p className="text-xs font-semibold tracking-widest text-gray-400 uppercase mb-3">
+            <p className="text-xs font-semibold tracking-widest text-slate-400 uppercase mb-3">
               Result
             </p>
             <div
               className={`bg-white border ${
                 statusConfig[result.status].border
-              } rounded-2xl p-4 shadow-sm`}
+              } rounded-[1.75rem] p-4 shadow-[0_8px_22px_rgba(45,65,59,0.05)]`}
             >
               <div className="flex justify-between items-start mb-2">
                 <div>
-                  <p className="text-sm font-bold text-gray-800">
+                  <p className="text-sm font-bold text-slate-800">
                     CYP2C19 {result.diplotype}
                   </p>
-                  <p className="text-xs text-gray-400">{result.phenotype}</p>
+                  <p className="text-xs text-slate-400">{result.phenotype}</p>
                 </div>
                 <span
-                  className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+                  className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
                     statusConfig[result.status].chip
                   }`}
                 >
                   {statusConfig[result.status].label}
                 </span>
               </div>
-              <p className="text-xs text-gray-500 leading-relaxed mb-3">
+              <p className="text-xs text-slate-500 leading-relaxed mb-3">
                 {result.note}
               </p>
               <div className="flex justify-between items-center">
-                <span className="text-[10px] text-gray-300">
+                <span className="text-[10px] text-slate-300">
                   Source: CPIC phenotype table
                 </span>
                 <Link
                   href="/pgx"
-                  className="text-xs text-teal-600 font-medium"
+                  className="text-xs text-[#347b73] font-medium"
                 >
                   Drug check →
                 </Link>
@@ -167,7 +167,7 @@ export default function DnaPage() {
 
             <button
               onClick={() => setSubmitted(false)}
-              className="w-full mt-4 py-3 border border-gray-200 text-gray-500 rounded-xl text-sm font-medium hover:bg-gray-100 transition-colors"
+              className="w-full mt-4 py-3 border border-[#dfe8e3] text-slate-500 rounded-[1.25rem] text-sm font-medium hover:bg-white transition-colors"
             >
               ← Select different diplotype
             </button>
@@ -188,13 +188,15 @@ function NavBar({ active }: { active: string }) {
     { href: "/pgx", icon: "💊", label: "PGx" },
   ];
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 flex justify-around py-3 px-4">
+    <div className="fixed bottom-0 left-0 right-0 bg-white/95 border-t border-[#dfe8e3] flex justify-around py-3 px-4 backdrop-blur">
       {items.map((i) => (
         <Link
           key={i.href}
           href={i.href}
           className={`flex flex-col items-center gap-0.5 ${
-            active === i.label.toLowerCase() ? "text-teal-600" : "text-gray-400"
+            active === i.label.toLowerCase()
+              ? "text-[#347b73]"
+              : "text-slate-400"
           }`}
         >
           <span className="text-xl">{i.icon}</span>
