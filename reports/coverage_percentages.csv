@@ -1,0 +1,6 @@
+component,participants,total_demo_participants,coverage_percent
+DEMO_L demographics,11933,11933,100.0
+BIOPRO_L standard biochemistry blood profile,7199,11933,60.3
+CBC_L complete blood count,8727,11933,73.1
+Any downloaded blood lab,8727,11933,73.1
+ALB_CR_L urine albumin/creatinine,8493,11933,71.2

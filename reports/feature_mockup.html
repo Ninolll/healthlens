@@ -1,0 +1,825 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Your Health Snapshot</title>
+  <style>
+    :root {
+      --ink: #17201d;
+      --muted: #65716d;
+      --line: #dce2de;
+      --paper: #f7f5ef;
+      --panel: #fffdfa;
+      --green: #2f7d6d;
+      --green-soft: #e3f1ec;
+      --rust: #c46f42;
+      --rust-soft: #f6dfd2;
+      --blue: #566f9f;
+      --blue-soft: #e5ebf7;
+      --gold: #a88b3e;
+      --gold-soft: #f2e8c9;
+      --shadow: 0 18px 42px rgba(27, 43, 37, 0.11);
+      --radius: 8px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      color: var(--ink);
+      background:
+        linear-gradient(90deg, rgba(23, 32, 29, 0.035) 1px, transparent 1px),
+        linear-gradient(rgba(23, 32, 29, 0.035) 1px, transparent 1px),
+        var(--paper);
+      background-size: 28px 28px;
+      font-family: "Avenir Next", "Helvetica Neue", sans-serif;
+    }
+
+    .shell {
+      max-width: 1220px;
+      margin: 0 auto;
+      padding: 28px;
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 330px;
+      gap: 24px;
+      align-items: stretch;
+      padding: 24px 0;
+      border-bottom: 2px solid var(--ink);
+    }
+
+    .eyebrow {
+      margin: 0 0 10px;
+      color: var(--green);
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.09em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 0;
+      max-width: 760px;
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: clamp(36px, 5vw, 66px);
+      line-height: 0.96;
+      letter-spacing: 0;
+    }
+
+    .hero-copy {
+      max-width: 720px;
+      margin: 16px 0 0;
+      color: var(--muted);
+      font-size: 16px;
+      line-height: 1.55;
+    }
+
+    .profile {
+      background: var(--ink);
+      color: white;
+      border-radius: var(--radius);
+      padding: 20px;
+      box-shadow: var(--shadow);
+    }
+
+    .profile h2 {
+      margin: 0 0 14px;
+      font-size: 16px;
+    }
+
+    .profile-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+
+    .profile-item span {
+      display: block;
+      color: rgba(255, 255, 255, 0.62);
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .profile-item b {
+      display: block;
+      margin-top: 4px;
+      font-size: 18px;
+    }
+
+    .wide {
+      grid-column: 1 / -1;
+    }
+
+    .summary-grid {
+      display: grid;
+      grid-template-columns: 1.05fr 0.95fr;
+      gap: 18px;
+      margin-top: 24px;
+    }
+
+    .feature-map {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-top: 18px;
+    }
+
+    .feature-card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-top: 6px solid var(--green);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 16px;
+    }
+
+    .feature-card:nth-child(2) {
+      border-top-color: var(--blue);
+    }
+
+    .feature-card:nth-child(3) {
+      border-top-color: var(--rust);
+    }
+
+    .feature-card:nth-child(4) {
+      border-top-color: var(--gold);
+    }
+
+    .feature-card span {
+      display: block;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+
+    .feature-card b {
+      display: block;
+      font-size: 15px;
+      margin-bottom: 8px;
+    }
+
+    .feature-card p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .panel-header {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      align-items: center;
+      padding: 18px 20px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .panel-header h2 {
+      margin: 0;
+      font-size: 18px;
+    }
+
+    .caption {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+      max-width: 360px;
+      text-align: right;
+    }
+
+    .takeaway {
+      padding: 22px;
+    }
+
+    .takeaway-main {
+      display: grid;
+      grid-template-columns: 108px 1fr;
+      gap: 18px;
+      align-items: center;
+      padding-bottom: 18px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .score {
+      display: grid;
+      place-items: center;
+      width: 108px;
+      height: 108px;
+      border-radius: 50%;
+      background: conic-gradient(var(--rust) 0 64%, #e9ede9 64% 100%);
+      position: relative;
+    }
+
+    .score::after {
+      content: "";
+      position: absolute;
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      background: var(--panel);
+    }
+
+    .score b {
+      position: relative;
+      z-index: 1;
+      font-size: 26px;
+    }
+
+    .takeaway h3 {
+      margin: 0;
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 30px;
+      line-height: 1.08;
+      letter-spacing: 0;
+    }
+
+    .takeaway p {
+      margin: 10px 0 0;
+      color: var(--muted);
+      line-height: 1.55;
+      font-size: 14px;
+    }
+
+    .answer-list {
+      display: grid;
+      gap: 12px;
+      margin-top: 18px;
+    }
+
+    .answer {
+      display: grid;
+      grid-template-columns: 34px 1fr;
+      gap: 12px;
+      align-items: start;
+    }
+
+    .answer-icon {
+      display: grid;
+      place-items: center;
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      background: var(--green-soft);
+      color: var(--green);
+      font-weight: 900;
+    }
+
+    .answer.warn .answer-icon {
+      background: var(--rust-soft);
+      color: var(--rust);
+    }
+
+    .answer b {
+      display: block;
+      font-size: 14px;
+      margin-bottom: 4px;
+    }
+
+    .answer span {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.4;
+    }
+
+    .next-steps {
+      padding: 20px;
+    }
+
+    .action {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 14px 0;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .action:last-child {
+      border-bottom: 0;
+    }
+
+    .action b {
+      display: block;
+      font-size: 14px;
+    }
+
+    .action span {
+      display: block;
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.4;
+    }
+
+    .priority {
+      align-self: start;
+      white-space: nowrap;
+      border-radius: 999px;
+      padding: 5px 9px;
+      background: var(--rust-soft);
+      color: #8a4526;
+      font-size: 11px;
+      font-weight: 800;
+    }
+
+    .priority.low {
+      background: var(--blue-soft);
+      color: var(--blue);
+    }
+
+    .details-layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1.25fr) minmax(330px, 0.75fr);
+      gap: 18px;
+      margin-top: 18px;
+    }
+
+    .bio-list {
+      padding: 10px 16px 18px;
+    }
+
+    .biomarker {
+      display: grid;
+      grid-template-columns: 188px minmax(220px, 1fr) 122px;
+      gap: 16px;
+      align-items: center;
+      padding: 15px 4px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .biomarker:last-child {
+      border-bottom: 0;
+    }
+
+    .bio-name {
+      font-weight: 800;
+      font-size: 14px;
+    }
+
+    .bio-meta {
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.35;
+    }
+
+    .track {
+      height: 12px;
+      background: #e8ece9;
+      border-radius: 999px;
+      border: 1px solid #d5ded9;
+      position: relative;
+      overflow: visible;
+    }
+
+    .fill {
+      width: var(--pct);
+      height: 100%;
+      border-radius: 999px;
+      background: var(--green);
+    }
+
+    .fill.warn {
+      background: var(--rust);
+    }
+
+    .range-track {
+      height: 16px;
+      border-radius: 999px;
+      border: 1px solid #d5ded9;
+      overflow: visible;
+      position: relative;
+      background: linear-gradient(
+        90deg,
+        var(--green-soft) 0 var(--normal-end),
+        var(--gold-soft) var(--normal-end) var(--border-end),
+        var(--rust-soft) var(--border-end) 100%
+      );
+    }
+
+    .range-track.normal-only {
+      background: linear-gradient(90deg, var(--green-soft) 0 var(--normal-end), var(--rust-soft) var(--normal-end) 100%);
+    }
+
+    .marker-dot {
+      position: absolute;
+      left: var(--value-pos);
+      top: 50%;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: var(--ink);
+      border: 3px solid white;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+      transform: translate(-50%, -50%);
+    }
+
+    .range-labels {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 9px;
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.25;
+    }
+
+    .range-note {
+      margin-top: 7px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.35;
+    }
+
+    .ticks {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 7px;
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    .result {
+      text-align: right;
+    }
+
+    .percentile {
+      display: block;
+      font-size: 22px;
+      font-weight: 900;
+    }
+
+    .badge {
+      display: inline-block;
+      margin-top: 7px;
+      border-radius: 999px;
+      padding: 5px 8px;
+      background: var(--green-soft);
+      color: #1e5f50;
+      font-size: 11px;
+      font-weight: 800;
+    }
+
+    .badge.warn {
+      background: var(--rust-soft);
+      color: #8b4324;
+    }
+
+    .evidence-list,
+    .variant {
+      padding: 18px 20px;
+    }
+
+    .evidence {
+      padding: 14px 0;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .evidence:last-child {
+      border-bottom: 0;
+    }
+
+    .evidence h3 {
+      margin: 0 0 8px;
+      font-size: 14px;
+    }
+
+    .evidence p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .source-line {
+      margin-top: 8px;
+      color: var(--blue);
+      font-size: 11px;
+      font-weight: 800;
+    }
+
+    .variant-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-top: 12px;
+    }
+
+    .variant-item {
+      padding: 12px;
+      background: #f7f8f6;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+    }
+
+    .variant-item span {
+      display: block;
+      margin-bottom: 4px;
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    .variant-item b {
+      font-size: 13px;
+    }
+
+    .wide {
+      grid-column: 1 / -1;
+    }
+
+    .footer-note {
+      margin-top: 18px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    @media (max-width: 980px) {
+      .hero,
+      .summary-grid,
+      .feature-map,
+      .details-layout {
+        grid-template-columns: 1fr;
+      }
+
+      .biomarker,
+      .takeaway-main {
+        grid-template-columns: 1fr;
+      }
+
+      .result,
+      .caption {
+        text-align: left;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <section class="hero">
+      <div>
+        <p class="eyebrow">Sample result screen</p>
+        <h1>Your health snapshot</h1>
+        <p class="hero-copy">
+          A user-facing feature prototype that turns raw biomarkers and genetic input into prioritized insight.
+          Each card answers a user question, with NHANES, CTD, and ClinVar working behind the scenes.
+        </p>
+      </div>
+      <aside class="profile" aria-label="sample user profile">
+        <h2>Sample user</h2>
+        <div class="profile-grid">
+          <div class="profile-item"><span>Age</span><b>35</b></div>
+          <div class="profile-item"><span>Sex</span><b>Female</b></div>
+          <div class="profile-item wide"><span>Genetic variant</span><b>BRCA1 c.68_69delAG</b></div>
+        </div>
+      </aside>
+    </section>
+
+    <section class="feature-map" aria-label="multi dataset feature value">
+      <div class="feature-card">
+        <span>Clinical range</span>
+        <b>Am I inside the normal range?</b>
+        <p>Shows whether each value is normal, borderline, or high before any technical evidence appears.</p>
+      </div>
+      <div class="feature-card">
+        <span>NHANES</span>
+        <b>Is this unusual for someone like me?</b>
+        <p>Compares the value with same-sex, similar-age participants who have that biomarker.</p>
+      </div>
+      <div class="feature-card">
+        <span>CTD</span>
+        <b>Why might this marker matter?</b>
+        <p>Links flagged biomarkers to disease, gene, and PubMed reference evidence.</p>
+      </div>
+      <div class="feature-card">
+        <span>ClinVar</span>
+        <b>Does genetics change the context?</b>
+        <p>Interprets user-provided variants with clinical significance and review status.</p>
+      </div>
+    </section>
+
+    <section class="summary-grid">
+      <article class="panel">
+        <header class="panel-header">
+          <h2>Feature output: prioritized insight</h2>
+          <div class="caption">The app combines range status, population context, evidence, and genetics into one user-facing summary.</div>
+        </header>
+        <div class="takeaway">
+          <div class="takeaway-main">
+            <div class="score"><b>4</b></div>
+            <div>
+              <h3>Two results are outside the ideal range.</h3>
+              <p>
+                Your cholesterol and triglycerides sit at or above the ideal clinical range. Creatinine and urine ACR
+                are still within general reference ranges, but higher than many similar people.
+              </p>
+            </div>
+          </div>
+          <div class="answer-list">
+            <div class="answer warn">
+              <div class="answer-icon">!</div>
+              <div>
+                <b>Needs attention</b>
+                <span>Cholesterol and triglycerides are the main values to review against normal ranges.</span>
+              </div>
+            </div>
+            <div class="answer">
+              <div class="answer-icon">✓</div>
+              <div>
+                <b>Looks typical</b>
+                <span>Glucose, hemoglobin, creatinine, and urine ACR are within general reference ranges in this sample.</span>
+              </div>
+            </div>
+            <div class="answer warn">
+              <div class="answer-icon">DNA</div>
+              <div>
+                <b>Genetic note</b>
+                <span>The sample BRCA1 variant has a pathogenic ClinVar interpretation, so this would need careful clinical review.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <article class="panel">
+        <header class="panel-header">
+          <h2>Feature output: review plan</h2>
+        </header>
+        <div class="next-steps">
+          <div class="action">
+            <div>
+              <b>Review flagged biomarkers with a clinician</b>
+              <span>Especially lipid and kidney-related results because several are above the comparison group.</span>
+            </div>
+            <div class="priority">Higher priority</div>
+          </div>
+          <div class="action">
+            <div>
+              <b>Check source lab context</b>
+              <span>Confirm fasting status, units, repeat testing, and whether any value is temporary or expected.</span>
+            </div>
+            <div class="priority low">Context</div>
+          </div>
+          <div class="action">
+            <div>
+              <b>Use evidence details as references</b>
+              <span>The CTD and ClinVar sections explain why a marker or variant may matter.</span>
+            </div>
+            <div class="priority low">Reference</div>
+          </div>
+        </div>
+      </article>
+    </section>
+
+    <section class="details-layout">
+      <article class="panel">
+        <header class="panel-header">
+          <h2>Supporting detail: ranges + NHANES comparison</h2>
+          <div class="caption">Compared with same-sex NHANES participants within +/- 5 years of age who have each biomarker value.</div>
+        </header>
+        <div class="bio-list">
+          <div class="biomarker">
+            <div>
+              <div class="bio-name">Total cholesterol</div>
+              <div class="bio-meta">Your value: 210 mg/dL · desirable &lt;200</div>
+            </div>
+            <div>
+              <div class="range-track" style="--normal-end:50%; --border-end:60%; --value-pos:52.5%">
+                <div class="marker-dot" aria-label="user value marker"></div>
+              </div>
+              <div class="range-labels"><span>0</span><span>&lt;200 normal</span><span>200-239 borderline</span><span>240+ high</span></div>
+              <div class="range-note">10 mg/dL above desirable range · NHANES: 80.3rd percentile, N=513</div>
+            </div>
+            <div class="result"><span class="percentile">210</span><span class="badge warn">Borderline</span></div>
+          </div>
+          <div class="biomarker">
+            <div>
+              <div class="bio-name">Glucose</div>
+              <div class="bio-meta">Your value: 95 mg/dL · fasting reference 70-99</div>
+            </div>
+            <div>
+              <div class="range-track normal-only" style="--normal-end:79%; --border-end:100%; --value-pos:76%">
+                <div class="marker-dot"></div>
+              </div>
+              <div class="range-labels"><span>70</span><span>99 normal upper</span><span>126+ diabetes threshold</span></div>
+              <div class="range-note">Within fasting reference range · NHANES: 69.6th percentile, N=513</div>
+            </div>
+            <div class="result"><span class="percentile">95</span><span class="badge">Normal</span></div>
+          </div>
+          <div class="biomarker">
+            <div>
+              <div class="bio-name">Triglycerides</div>
+              <div class="bio-meta">Your value: 150 mg/dL · normal &lt;150</div>
+            </div>
+            <div>
+              <div class="range-track" style="--normal-end:30%; --border-end:40%; --value-pos:30%">
+                <div class="marker-dot"></div>
+              </div>
+              <div class="range-labels"><span>0</span><span>&lt;150 normal</span><span>150-199 borderline</span><span>200+ high</span></div>
+              <div class="range-note">At borderline threshold · NHANES: 78.8th percentile, N=513</div>
+            </div>
+            <div class="result"><span class="percentile">150</span><span class="badge warn">Borderline</span></div>
+          </div>
+          <div class="biomarker">
+            <div>
+              <div class="bio-name">Serum creatinine</div>
+              <div class="bio-meta">Your value: 0.85 mg/dL · typical adult range ~0.6-1.3</div>
+            </div>
+            <div>
+              <div class="range-track normal-only" style="--normal-end:76%; --border-end:100%; --value-pos:50%">
+                <div class="marker-dot"></div>
+              </div>
+              <div class="range-labels"><span>0.6</span><span>1.3 normal upper</span><span>higher values need context</span></div>
+              <div class="range-note">Within general reference range, but high vs similar people · NHANES: 84.0th percentile, N=513</div>
+            </div>
+            <div class="result"><span class="percentile">0.85</span><span class="badge">Normal</span></div>
+          </div>
+          <div class="biomarker">
+            <div>
+              <div class="bio-name">Hemoglobin</div>
+              <div class="bio-meta">Your value: 13.0 g/dL · female range ~12.0-15.5</div>
+            </div>
+            <div>
+              <div class="range-track normal-only" style="--normal-end:100%; --border-end:100%; --value-pos:29%">
+                <div class="marker-dot"></div>
+              </div>
+              <div class="range-labels"><span>12.0</span><span>15.5 normal upper</span></div>
+              <div class="range-note">Within general female reference range · NHANES: 41.2nd percentile, N=534</div>
+            </div>
+            <div class="result"><span class="percentile">13.0</span><span class="badge">Normal</span></div>
+          </div>
+          <div class="biomarker">
+            <div>
+              <div class="bio-name">Urine ACR</div>
+              <div class="bio-meta">Your value: 12.0 mg/g · normal &lt;30</div>
+            </div>
+            <div>
+              <div class="range-track normal-only" style="--normal-end:30%; --border-end:100%; --value-pos:12%">
+                <div class="marker-dot"></div>
+              </div>
+              <div class="range-labels"><span>0</span><span>&lt;30 normal</span><span>30-300 moderately increased</span></div>
+              <div class="range-note">Within normal range, but high vs similar people · NHANES: 77.7th percentile, N=560</div>
+            </div>
+            <div class="result"><span class="percentile">12.0</span><span class="badge">Normal</span></div>
+          </div>
+        </div>
+      </article>
+
+      <aside>
+        <section class="panel">
+          <header class="panel-header">
+            <h2>Supporting detail: CTD evidence</h2>
+          </header>
+          <div class="evidence-list">
+            <div class="evidence">
+              <h3>Lipid markers</h3>
+              <p>Cholesterol and triglycerides are linked in CTD references to metabolic and lipid-related disease/gene evidence.</p>
+              <div class="source-line">Evidence layer: CTD disease/gene references + PubMed IDs</div>
+            </div>
+            <div class="evidence">
+              <h3>Kidney-related markers</h3>
+              <p>Creatinine and urine ACR are within general ranges here, but their higher population percentiles can still provide context.</p>
+              <div class="source-line">Evidence layer: CTD references including NFE2L2, SLC47A1, TNF, SOD2</div>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel" style="margin-top:18px">
+          <header class="panel-header">
+            <h2>Supporting detail: ClinVar reference</h2>
+          </header>
+          <div class="variant">
+            <div class="variant-grid">
+              <div class="variant-item"><span>ClinVar ID</span><b>17662</b></div>
+              <div class="variant-item"><span>Gene</span><b>BRCA1</b></div>
+              <div class="variant-item wide"><span>Clinical significance</span><b>Pathogenic</b></div>
+              <div class="variant-item wide"><span>Condition</span><b>BRCA1-related cancer predisposition</b></div>
+              <div class="variant-item wide"><span>Review status</span><b>Reviewed by expert panel</b></div>
+            </div>
+          </div>
+        </section>
+      </aside>
+    </section>
+
+    <p class="footer-note">
+      This mockup is explanatory, not diagnostic. The top section is what a user would see first; the lower sections show the NHANES, CTD,
+      and ClinVar references that support the summary.
+    </p>
+  </main>
+</body>
+</html>

@@ -1,0 +1,172 @@
+{
+  "chemical::Cholesterol": {
+    "source": "CTD local downloaded TSV files",
+    "query": "Cholesterol",
+    "kind": "chemical",
+    "diseases": [
+      {
+        "disease": "Diabetes Mellitus, Experimental",
+        "evidence": "inferred via PTGS2, score=123.29",
+        "pmids": "14514642, 21414306"
+      },
+      {
+        "disease": "Diabetes Mellitus, Experimental",
+        "evidence": "inferred via IRS1, score=123.29",
+        "pmids": "22138235"
+      },
+      {
+        "disease": "Diabetes Mellitus, Experimental",
+        "evidence": "inferred via GPAM, score=123.29",
+        "pmids": "9452481"
+      },
+      {
+        "disease": "Diabetes Mellitus, Experimental",
+        "evidence": "inferred via HMOX1, score=123.29",
+        "pmids": "16123366, 16959961, 18375438 +1 more"
+      }
+    ],
+    "genes": [
+      {
+        "gene": "VDR",
+        "interaction": "Cholesterol metabolite binds to VDR protein",
+        "pmids": "16051528"
+      },
+      {
+        "gene": "NR1I3",
+        "interaction": "Cholesterol metabolite binds to NR1I3 protein",
+        "pmids": "16051528"
+      },
+      {
+        "gene": "LPL",
+        "interaction": "Cholesterol results in increased expression of LPL mRNA",
+        "pmids": "26296894"
+      },
+      {
+        "gene": "AQP9",
+        "interaction": "Cholesterol results in increased expression of AQP9 mRNA",
+        "pmids": "26296894"
+      }
+    ]
+  },
+  "chemical::Triglycerides": {
+    "source": "CTD local downloaded TSV files",
+    "query": "Triglycerides",
+    "kind": "chemical",
+    "diseases": [
+      {
+        "disease": "Obesity",
+        "evidence": "inferred via ANGPTL4, score=82.30",
+        "pmids": "28842503"
+      },
+      {
+        "disease": "Obesity",
+        "evidence": "inferred via LEP, score=82.30",
+        "pmids": "17517446, 18515891, 19913045 +12 more"
+      },
+      {
+        "disease": "Obesity",
+        "evidence": "inferred via ACHE, score=82.30",
+        "pmids": "29273807"
+      },
+      {
+        "disease": "Obesity",
+        "evidence": "inferred via AHR, score=82.30",
+        "pmids": "27020609, 30813227, 31306034"
+      }
+    ],
+    "genes": [
+      {
+        "gene": "IL1B",
+        "interaction": "Triglycerides affects the susceptibility to IL1B protein",
+        "pmids": "9312173"
+      },
+      {
+        "gene": "PPY",
+        "interaction": "Triglycerides results in increased secretion of PPY protein",
+        "pmids": "15998659"
+      },
+      {
+        "gene": "PYY",
+        "interaction": "Triglycerides results in increased secretion of PYY protein",
+        "pmids": "15998659"
+      },
+      {
+        "gene": "GHRL",
+        "interaction": "Triglycerides results in decreased secretion of GHRL protein",
+        "pmids": "15998659"
+      }
+    ]
+  },
+  "chemical::Creatinine": {
+    "source": "CTD local downloaded TSV files",
+    "query": "Creatinine",
+    "kind": "chemical",
+    "diseases": [
+      {
+        "disease": "Acute Kidney Injury",
+        "evidence": "inferred via NFE2L2, score=2.56",
+        "pmids": "24958931"
+      },
+      {
+        "disease": "Kidney Diseases",
+        "evidence": "inferred via LEPR, score=8.32",
+        "pmids": "20567778, 33345901"
+      },
+      {
+        "disease": "Kidney Diseases",
+        "evidence": "inferred via NFE2L2, score=8.32",
+        "pmids": "20605904"
+      },
+      {
+        "disease": "Kidney Diseases",
+        "evidence": "inferred via SLC47A1, score=8.32",
+        "pmids": "24001450, 35710981"
+      }
+    ],
+    "genes": [
+      {
+        "gene": "SLC47A1",
+        "interaction": "Creatinine inhibits the reaction [SLC47A1 protein results in increased uptake of 1-Methyl-4-phenylpyridinium]",
+        "pmids": "22419765"
+      },
+      {
+        "gene": "SLC47A2",
+        "interaction": "Creatinine inhibits the reaction [SLC47A2 protein results in increased uptake of 1-Methyl-4-phenylpyridinium]",
+        "pmids": "22419765"
+      },
+      {
+        "gene": "SOD2",
+        "interaction": "SOD2 protein results in decreased abundance of Creatinine",
+        "pmids": "19917352"
+      }
+    ]
+  },
+  "disease::Albuminuria": {
+    "source": "CTD local downloaded TSV files",
+    "query": "Albuminuria",
+    "kind": "disease",
+    "diseases": [
+      {
+        "disease": "Albuminuria",
+        "evidence": "inferred via CD38, score=32.73",
+        "pmids": "21992601"
+      },
+      {
+        "disease": "Albuminuria",
+        "evidence": "inferred via TRPC6, score=32.73",
+        "pmids": "39226116"
+      },
+      {
+        "disease": "Albuminuria",
+        "evidence": "inferred via TNF, score=32.73",
+        "pmids": "17167242"
+      },
+      {
+        "disease": "Albuminuria",
+        "evidence": "inferred via SOD2, score=32.73",
+        "pmids": "17942768"
+      }
+    ],
+    "genes": []
+  }
+}
