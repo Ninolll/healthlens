@@ -13,9 +13,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "HealthLens PGx Advisor",
+  title: "HealthLens",
   description:
-    "A CPIC-grounded mock-up for genotype-guided clopidogrel safety checks.",
+    "Your DNA and blood results, explained. HealthLens combines genetic context and blood-test signals into clear, evidence-backed next steps.",
 };
 
 export default function RootLayout({

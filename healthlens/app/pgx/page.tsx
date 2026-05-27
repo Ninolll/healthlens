@@ -20,55 +20,29 @@ const indicationLabels: Record<Indication, string> = {
   stable_cad: "Stable CAD",
 };
 
-const statusConfig: Record<
-  string,
-  { chip: string; label: string; border: string; recBorder: string }
-> = {
-  caution: {
-    chip: "bg-[#f8f1e6] text-[#8a6334]",
-    label: "⚠️ Caution",
-    border: "border-[#ead7bd]",
-    recBorder: "border-l-[#c79b5b]",
-  },
-  danger: {
-    chip: "bg-[#fceeee] text-[#9d3f3f]",
-    label: "⛔ High Risk",
-    border: "border-[#efcaca]",
-    recBorder: "border-l-[#c76d6d]",
-  },
-  safe: {
-    chip: "bg-[#eef7f4] text-[#347b73]",
-    label: "✓ Safe",
-    border: "border-[#c8ded8]",
-    recBorder: "border-l-[#6ba79e]",
-  },
-  unknown: {
-    chip: "bg-[#eef1ef] text-slate-500",
-    label: "No Data",
-    border: "border-[#dfe8e3]",
-    recBorder: "border-l-[#b9c5c0]",
-  },
+type Status = "caution" | "danger" | "safe" | "unknown";
+
+const statusHeader: Record<Status, { bg: string; subtext: string }> = {
+  danger:  { bg: "bg-[#ff3b30]", subtext: "Discuss with clinician" },
+  caution: { bg: "bg-[#ff9500]", subtext: "Monitor" },
+  safe:    { bg: "bg-[#34c759]", subtext: "No concern flagged" },
+  unknown: { bg: "bg-[#8e8e93]", subtext: "No guideline found" },
 };
 
-function getRecommendation(
-  diplotype: string,
-  drug: string,
-  indication: Indication,
-) {
+function getRecommendation(diplotype: string, drug: string, indication: Indication) {
   const phenotype = phenotypeMap[diplotype] || "Indeterminate";
 
   if (drug !== "Clopidogrel" || phenotype === "Indeterminate") {
     return {
       name: drug,
       gene: `CYP2C19 · ${phenotype}`,
-      status: "unknown",
+      status: "unknown" as Status,
       recommendation:
         "No guideline currently covers this exact gene × drug query. This does not mean there is no interaction — it means evidence is insufficient for a recommendation.",
-      alternatives: [],
+      alternatives: ["Consult clinician or pharmacist"],
       evidence: [
         "CPIC record: not found",
         "PharmGKB fallback: not enabled in v1",
-        "Action: consult clinician or pharmacist",
       ],
       badge: "Tier 3 · No data",
     };
@@ -79,17 +53,17 @@ function getRecommendation(
     return {
       name: "Clopidogrel",
       gene: `CYP2C19 · ${phenotype}`,
-      status: "danger",
+      status: "danger" as Status,
       recommendation: neurovascular
-        ? "Avoid clopidogrel if possible. Prasugrel is contraindicated in stroke/TIA patients, so use ticagrelor or ticlopidine instead."
-        : "Avoid clopidogrel if possible. Your CYP2C19 genotype predicts substantially reduced active metabolite formation.",
+        ? "This gene-drug result should be reviewed with your prescribing clinician. Your CYP2C19 result may reduce clopidogrel activation, and medication choice depends on your clinical context."
+        : "This gene-drug result should be reviewed with your prescribing clinician. Your CYP2C19 genotype predicts substantially reduced clopidogrel activation, but medication changes require clinician guidance.",
       alternatives: neurovascular
-        ? ["Ticagrelor", "Ticlopidine"]
-        : ["Ticagrelor", "Prasugrel"],
+        ? ["Ask about clopidogrel appropriateness", "Ask about stroke/TIA medication constraints"]
+        : ["Ask about clopidogrel appropriateness", "Ask whether alternatives should be considered"],
       evidence: [
         `${diplotype} → Poor Metabolizer`,
-        `Exact lookup: CYP2C19 + Poor Metabolizer + clopidogrel + ${indicationLabels[indication]}`,
-        "Rule: Poor Metabolizer + Strong CPIC record → high alert",
+        `CYP2C19 + Poor Metabolizer + clopidogrel + ${indicationLabels[indication]}`,
+        "Poor Metabolizer + Strong CPIC record → high alert",
       ],
       badge: "CPIC 2022 · PMID 35034351",
     };
@@ -99,14 +73,14 @@ function getRecommendation(
     return {
       name: "Clopidogrel",
       gene: `CYP2C19 · ${phenotype}`,
-      status: "caution",
+      status: "caution" as Status,
       recommendation:
-        "Reduced efficacy is expected. Consider an alternative antiplatelet because clopidogrel activation may be reduced.",
-      alternatives: ["Ticagrelor", "Prasugrel"],
+        "Reduced clopidogrel activation may be relevant. Discuss whether this changes your medication plan with the clinician who prescribed it.",
+      alternatives: ["Ask about reduced activation", "Ask whether follow-up is needed"],
       evidence: [
         `${diplotype} → Intermediate Metabolizer`,
-        `Exact lookup: CYP2C19 + Intermediate Metabolizer + clopidogrel + ${indicationLabels[indication]}`,
-        "Rule: Intermediate Metabolizer → moderate alert",
+        `CYP2C19 + Intermediate Metabolizer + clopidogrel + ${indicationLabels[indication]}`,
+        "Intermediate Metabolizer → moderate alert",
       ],
       badge: "CPIC 2022 · PMID 35034351",
     };
@@ -115,14 +89,14 @@ function getRecommendation(
   return {
     name: "Clopidogrel",
     gene: `CYP2C19 · ${phenotype}`,
-    status: "safe",
+    status: "safe" as Status,
     recommendation:
-      "No pharmacogenomic change is required. Standard clopidogrel use is supported for this phenotype.",
+      "No pharmacogenomic concern is flagged for this phenotype in this mock result. Continue to follow your clinician's medication plan.",
     alternatives: [],
     evidence: [
       `${diplotype} → ${phenotype}`,
-      `Exact lookup: CYP2C19 + ${phenotype} + clopidogrel + ${indicationLabels[indication]}`,
-      "Rule: Normal/Rapid/Ultrarapid phenotype → low alert",
+      `CYP2C19 + ${phenotype} + clopidogrel + ${indicationLabels[indication]}`,
+      "Normal/Rapid/Ultrarapid phenotype → low alert",
     ],
     badge: "CPIC 2022 · PMID 35034351",
   };
@@ -148,41 +122,34 @@ export default function PgxPage() {
     }, 700);
   }
 
+  const header = statusHeader[result.status];
+
   return (
-    <div className="min-h-screen bg-[#f6f8f5] flex justify-center items-start py-8 px-4 pb-24">
-      <div className="w-full max-w-sm">
-        <div className="mb-5">
-          <p className="text-xs font-semibold tracking-widest text-slate-400 uppercase mb-1">
+    <div className="min-h-screen bg-[#f2f2f7] pb-24 text-[#1c1c1e]">
+      <div className="mx-auto w-full max-w-sm">
+
+        <div className="px-4 pb-4 pt-14">
+          <p className="text-xs font-semibold uppercase tracking-wider text-[#8e8e93]">
             Drug Safety
           </p>
-          <h1
-            className="text-2xl font-bold text-slate-800"
-            style={{ fontFamily: "'DM Serif Display', serif" }}
-          >
-            Medication
-            <br />
-            Compatibility
+          <h1 className="mt-0.5 text-[28px] font-bold leading-tight tracking-tight">
+            Medication check
           </h1>
         </div>
 
         {!submitted ? (
-          <div className="bg-white rounded-[1.75rem] border border-[#dfe8e3] shadow-[0_8px_22px_rgba(45,65,59,0.05)] p-5">
-            <p className="text-sm font-semibold text-slate-700 mb-1">
-              Run PGx safety check
-            </p>
-            <p className="text-xs text-slate-400 mb-4">
-              CPIC lookup uses exact metadata, not RAG
-            </p>
-
-            <div className="space-y-3 mb-4">
-              <label>
-                <span className="text-xs text-slate-400 font-medium mb-1 block">
-                  CYP2C19 diplotype
-                </span>
+          <section className="mx-4 overflow-hidden rounded-2xl bg-white shadow-sm">
+            <div className="px-4 py-4">
+              <p className="text-sm font-semibold text-[#1c1c1e]">Run PGx safety check</p>
+              <p className="mt-0.5 text-xs text-[#8e8e93]">CPIC lookup · exact metadata, not RAG</p>
+            </div>
+            <div className="divide-y divide-[#e5e5ea] border-t border-[#e5e5ea]">
+              <label className="flex items-center justify-between px-4 py-3">
+                <span className="text-sm text-[#1c1c1e]">CYP2C19 diplotype</span>
                 <select
                   value={diplotype}
                   onChange={(e) => setDiplotype(e.target.value)}
-                  className="w-full border border-[#dfe8e3] bg-[#fbfcfb] rounded-2xl px-3 py-2 text-sm text-slate-800 focus:outline-none focus:border-[#6ba79e]"
+                  className="text-right text-sm font-semibold text-[#007aff] bg-transparent focus:outline-none"
                 >
                   {Object.keys(phenotypeMap).map((option) => (
                     <option key={option}>{option}</option>
@@ -190,30 +157,24 @@ export default function PgxPage() {
                   <option>Unknown</option>
                 </select>
               </label>
-
-              <label>
-                <span className="text-xs text-slate-400 font-medium mb-1 block">
-                  Current medication
-                </span>
+              <label className="flex items-center justify-between px-4 py-3">
+                <span className="text-sm text-[#1c1c1e]">Medication</span>
                 <select
                   value={drug}
                   onChange={(e) => setDrug(e.target.value)}
-                  className="w-full border border-[#dfe8e3] bg-[#fbfcfb] rounded-2xl px-3 py-2 text-sm text-slate-800 focus:outline-none focus:border-[#6ba79e]"
+                  className="text-right text-sm font-semibold text-[#007aff] bg-transparent focus:outline-none"
                 >
                   <option>Clopidogrel</option>
                   <option>Warfarin</option>
                   <option>Codeine</option>
                 </select>
               </label>
-
-              <label>
-                <span className="text-xs text-slate-400 font-medium mb-1 block">
-                  Clinical indication
-                </span>
+              <label className="flex items-center justify-between px-4 py-3">
+                <span className="text-sm text-[#1c1c1e]">Clinical indication</span>
                 <select
                   value={indication}
                   onChange={(e) => setIndication(e.target.value as Indication)}
-                  className="w-full border border-[#dfe8e3] bg-[#fbfcfb] rounded-2xl px-3 py-2 text-sm text-slate-800 focus:outline-none focus:border-[#6ba79e]"
+                  className="text-right text-sm font-semibold text-[#007aff] bg-transparent focus:outline-none"
                 >
                   <option value="acs_pci">ACS/PCI</option>
                   <option value="neurovascular">Stroke/TIA</option>
@@ -221,119 +182,74 @@ export default function PgxPage() {
                 </select>
               </label>
             </div>
-
-            <button
-              onClick={handleSubmit}
-              disabled={analysing}
-              className="w-full py-3 bg-[#347b73] text-white rounded-[1.25rem] font-semibold text-sm disabled:opacity-40 hover:bg-[#286961] transition-colors"
-            >
-              {analysing ? "Checking compatibility..." : "Check Drug Safety →"}
-            </button>
-          </div>
-        ) : (
-          <>
-            <div
-              className={`${
-                result.status === "danger"
-                  ? "bg-[#fceeee] border-[#efcaca]"
-                  : result.status === "caution"
-                    ? "bg-[#f8f1e6] border-[#ead7bd]"
-                    : "bg-[#eef7f4] border-[#c8ded8]"
-              } border rounded-[1.75rem] p-4 mb-5`}
-            >
-              <p className="text-sm font-bold text-slate-800">
-                {result.status === "danger"
-                  ? "⛔ High Alert Found"
-                  : result.status === "caution"
-                    ? "⚠️ Caution Found"
-                    : result.status === "unknown"
-                      ? "No Guideline Found"
-                      : "✓ Standard Use Supported"}
-              </p>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Based on {diplotype} and {indicationLabels[indication]}
-              </p>
-            </div>
-
-            <p className="text-xs font-semibold tracking-widest text-slate-400 uppercase mb-3">
-              Recommendation
-            </p>
-            <div
-              className={`bg-white border ${
-                statusConfig[result.status].border
-              } rounded-[1.75rem] p-4 shadow-[0_8px_22px_rgba(45,65,59,0.05)]`}
-            >
-              <div className="flex justify-between items-start mb-3">
-                <div>
-                  <p className="text-sm font-bold text-slate-800">
-                    {result.name}
-                  </p>
-                  <p className="text-xs text-slate-400 mt-0.5">{result.gene}</p>
-                </div>
-                <span
-                  className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
-                    statusConfig[result.status].chip
-                  }`}
-                >
-                  {statusConfig[result.status].label}
-                </span>
-              </div>
-              <div
-                className={`text-xs text-slate-500 leading-relaxed p-3 bg-[#f8faf8] rounded-2xl border-l-2 ${
-                  statusConfig[result.status].recBorder
-                } mb-3`}
+            <div className="px-4 py-4">
+              <button
+                onClick={handleSubmit}
+                disabled={analysing}
+                className="w-full rounded-2xl bg-[#007aff] py-3 text-sm font-semibold text-white disabled:opacity-40"
               >
-                {result.recommendation}
-              </div>
-
-              <div className="mb-3">
-                <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-2">
-                  Evidence trace
+                {analysing ? "Checking compatibility…" : "Check drug safety"}
+              </button>
+            </div>
+          </section>
+        ) : (
+          <div className="flex flex-col gap-4 px-4">
+            {/* Result card — severity drives the header treatment */}
+            <article className="overflow-hidden rounded-2xl shadow-sm">
+              <div className={`${header.bg} px-4 pb-4 pt-4`}>
+                <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-white/70">
+                  {header.subtext}
                 </p>
-                <div className="space-y-1.5">
-                  {result.evidence.map((item) => (
-                    <p
-                      key={item}
-                      className="text-[11px] text-slate-500 leading-relaxed"
-                    >
-                      • {item}
-                    </p>
-                  ))}
-                </div>
+                <h3 className="mt-1 text-[19px] font-bold leading-snug text-white">
+                  {result.name}
+                </h3>
+                <p className="mt-0.5 text-sm text-white/80">{result.gene}</p>
               </div>
+              <div className="bg-white px-4 py-4 space-y-4">
+                <p className="text-sm leading-5 text-[#3a3a3c]">{result.recommendation}</p>
 
-              {result.alternatives.length > 0 && (
                 <div>
-                  <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-2">
-                    Suggested alternatives
+                  <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-[#8e8e93]">
+                    Evidence
                   </p>
-                  <div className="flex gap-2 flex-wrap">
-                    {result.alternatives.map((a) => (
-                      <span
-                        key={a}
-                        className="text-xs px-3 py-1 bg-[#eef7f4] text-[#347b73] border border-[#c8ded8] rounded-full font-medium"
-                      >
-                        {a}
-                      </span>
+                  <div className="divide-y divide-[#e5e5ea]">
+                    {result.evidence.map((item, i) => (
+                      <div key={item} className="flex gap-3 py-2.5">
+                        <span className="text-xs font-bold tabular-nums text-[#c7c7cc]">{i + 1}</span>
+                        <p className="text-xs leading-5 text-[#3a3a3c]">{item}</p>
+                      </div>
                     ))}
                   </div>
                 </div>
-              )}
 
-              <p className="text-[10px] text-slate-300 mt-3">{result.badge}</p>
-            </div>
+                {result.alternatives.length > 0 && (
+                  <div>
+                    <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-[#8e8e93]">
+                      Questions to ask
+                    </p>
+                    <div className="space-y-1.5">
+                      {result.alternatives.map((a) => (
+                        <p key={a} className="text-sm text-[#1c1c1e]">· {a}</p>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <p className="text-xs text-[#c7c7cc]">{result.badge}</p>
+              </div>
+            </article>
 
             <button
               onClick={() => setSubmitted(false)}
-              className="w-full mt-4 py-3 border border-[#dfe8e3] text-slate-500 rounded-[1.25rem] text-sm font-medium hover:bg-white transition-colors"
+              className="w-full py-3 text-sm font-semibold text-[#007aff]"
             >
-              ← Enter new query
+              ← New query
             </button>
 
-            <p className="text-[10px] text-slate-300 text-center mt-3">
+            <p className="text-center text-[10px] text-[#c7c7cc]">
               Source: CPIC Guidelines 2022 · Always consult your prescriber
             </p>
-          </>
+          </div>
         )}
 
         <NavBar active="pgx" />
@@ -344,27 +260,27 @@ export default function PgxPage() {
 
 function NavBar({ active }: { active: string }) {
   const items = [
-    { href: "/upload", icon: "🏠", label: "Home" },
+    { href: "/",     icon: "✦",  label: "Results" },
     { href: "/blood", icon: "🩸", label: "Blood" },
-    { href: "/dna", icon: "🧬", label: "DNA" },
-    { href: "/pgx", icon: "💊", label: "PGx" },
+    { href: "/dna",  icon: "🧬", label: "DNA" },
+    { href: "/pgx",  icon: "💊", label: "PGx" },
   ];
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-white/95 border-t border-[#dfe8e3] flex justify-around py-3 px-4 backdrop-blur">
-      {items.map((i) => (
-        <Link
-          key={i.href}
-          href={i.href}
-          className={`flex flex-col items-center gap-0.5 ${
-            active === i.label.toLowerCase()
-              ? "text-[#347b73]"
-              : "text-slate-400"
-          }`}
-        >
-          <span className="text-xl">{i.icon}</span>
-          <span className="text-[10px] font-medium">{i.label}</span>
-        </Link>
-      ))}
-    </div>
+    <nav className="fixed bottom-0 left-0 right-0 z-10 border-t border-[#e5e5ea] bg-white/95 px-5 pb-8 pt-2 backdrop-blur">
+      <div className="mx-auto flex max-w-[430px] justify-around">
+        {items.map((i) => (
+          <Link
+            key={i.href}
+            href={i.href}
+            className={`flex flex-col items-center gap-0.5 text-[10px] font-semibold ${
+              active === i.label.toLowerCase() ? "text-[#007aff]" : "text-[#8e8e93]"
+            }`}
+          >
+            <span className="text-xl">{i.icon}</span>
+            <span>{i.label}</span>
+          </Link>
+        ))}
+      </div>
+    </nav>
   );
 }

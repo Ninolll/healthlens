@@ -2,261 +2,183 @@
 import { useState } from "react";
 import Link from "next/link";
 
-const fields = [
-  {
-    key: "cholesterol",
-    label: "Total Cholesterol",
-    unit: "mg/dL",
-    col: "LBXSCH",
-  },
-  { key: "glucose", label: "Glucose", unit: "mg/dL", col: "LBXSGL" },
-  {
-    key: "triglycerides",
-    label: "Triglycerides",
-    unit: "mg/dL",
-    col: "LBXSTR",
-  },
-  { key: "creatinine", label: "Creatinine", unit: "mg/dL", col: "LBXSCR" },
-  { key: "hemoglobin", label: "Hemoglobin", unit: "g/dL", col: "LBXHGB" },
+// Mock results for prototype — replace with real NHANES percentile API when backend is ready
+const MOCK_RESULTS = [
+  { biomarker: "ApoB", user_value: 125, unit: "mg/dL", percentile: 88, pop_mean: 78, status: "above" as const },
+  { biomarker: "LDL-C", user_value: 155, unit: "mg/dL", percentile: 82, pop_mean: 112, status: "above" as const },
+  { biomarker: "hs-CRP", user_value: 4.2, unit: "mg/L", percentile: 76, pop_mean: 2.1, status: "above" as const },
+  { biomarker: "Homocysteine", user_value: 7.8, unit: "µmol/L", percentile: 45, pop_mean: 9.2, status: "normal" as const },
+  { biomarker: "Total Cholesterol", user_value: 210, unit: "mg/dL", percentile: 65, pop_mean: 196, status: "normal" as const },
 ];
 
-type BiomarkerKey = (typeof fields)[number]["key"];
+type MockResult = (typeof MOCK_RESULTS)[number];
 
-type AnalysisRequest = {
-  age: number;
-  gender: number;
-} & Partial<Record<BiomarkerKey, number>>;
-
-type AnalysisResult = {
-  biomarker: string;
-  user_value: number;
-  percentile: number;
-  pop_mean: number;
-  interpretation: string;
-};
-
-const statusConfig: Record<
-  string,
-  { bar: string; chip: string; label: string }
-> = {
-  "Very high": {
-    bar: "bg-[#c76d6d]",
-    chip: "bg-[#fceeee] text-[#9d3f3f]",
-    label: "Very high",
-  },
-  "Above average": {
-    bar: "bg-[#d88b7e]",
-    chip: "bg-[#fceeee] text-[#9d3f3f]",
-    label: "Above avg",
-  },
-  "Normal range": {
-    bar: "bg-[#6ba79e]",
-    chip: "bg-[#eef7f4] text-[#347b73]",
-    label: "Normal",
-  },
-  "Below average": {
-    bar: "bg-[#c79b5b]",
-    chip: "bg-[#f8f1e6] text-[#8a6334]",
-    label: "Below avg",
-  },
-  "Very low": {
-    bar: "bg-[#7395b8]",
-    chip: "bg-[#eef3f8] text-[#496f93]",
-    label: "Very low",
-  },
-};
+const fields = [
+  { key: "apob",        label: "ApoB",             unit: "mg/dL"  },
+  { key: "ldl",         label: "LDL-C",             unit: "mg/dL"  },
+  { key: "hscrp",       label: "hs-CRP",            unit: "mg/L"   },
+  { key: "homocysteine",label: "Homocysteine",       unit: "µmol/L" },
+  { key: "cholesterol", label: "Total Cholesterol",  unit: "mg/dL"  },
+];
 
 export default function BloodPage() {
-  const [form, setForm] = useState({
-    age: "",
-    gender: "2",
-    cholesterol: "",
-    glucose: "",
-    triglycerides: "",
-    creatinine: "",
-    hemoglobin: "",
-  });
-  const [results, setResults] = useState<AnalysisResult[]>([]);
+  const [form, setForm] = useState<Record<string, string>>({});
+  const [results, setResults] = useState<MockResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
-  async function handleSubmit() {
+  function handleAnalyse() {
     setLoading(true);
-    const body: AnalysisRequest = {
-      age: parseInt(form.age),
-      gender: parseInt(form.gender),
-    };
-    fields.forEach((f) => {
-      if (form[f.key as keyof typeof form])
-        body[f.key] = parseFloat(form[f.key as keyof typeof form]);
-    });
-    const res = await fetch("http://localhost:8000/analyse", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
-    const data = await res.json();
-    setResults(data.results);
-    setSubmitted(true);
-    setLoading(false);
+    // Prototype: use mock results. Real percentile API (localhost:8000/analyse) will be wired in MVP.
+    setTimeout(() => {
+      setResults(MOCK_RESULTS);
+      setSubmitted(true);
+      setLoading(false);
+    }, 600);
   }
 
   return (
-    <div className="min-h-screen bg-[#f6f8f5] flex justify-center items-start py-8 px-4 pb-24">
-      <div className="w-full max-w-sm">
-        <div className="mb-5">
-          <p className="text-xs font-semibold tracking-widest text-slate-400 uppercase mb-1">
-            Blood Analysis
+    <div className="min-h-screen bg-[#f2f2f7] pb-28 text-[#1c1c1e]">
+      <div className="mx-auto w-full max-w-[430px]">
+
+        <header className="px-4 pb-4 pt-14">
+          <p className="text-xs font-semibold uppercase tracking-wider text-[#8e8e93]">
+            Blood markers
           </p>
-          <h1
-            className="text-2xl font-bold text-slate-800"
-            style={{ fontFamily: "'DM Serif Display', serif" }}
-          >
-            {submitted ? "Your Results vs Population" : "Enter Your Values"}
+          <h1 className="mt-0.5 text-[28px] font-bold leading-tight tracking-tight">
+            {submitted ? "Your blood results" : "Enter your values"}
           </h1>
-        </div>
+        </header>
 
         {!submitted ? (
-          <div className="bg-white rounded-[1.75rem] border border-[#dfe8e3] shadow-[0_8px_22px_rgba(45,65,59,0.05)] p-4 space-y-4">
-            <div className="flex gap-3">
-              <div className="flex-1">
-                <label className="text-xs text-slate-400 font-medium mb-1 block">
-                  Age
-                </label>
-                <input
-                  type="number"
-                  placeholder="35"
-                  value={form.age}
-                  onChange={(e) => setForm({ ...form, age: e.target.value })}
-                  className="w-full border border-[#dfe8e3] bg-[#fbfcfb] rounded-2xl px-3 py-2 text-sm text-slate-800 focus:outline-none focus:border-[#6ba79e]"
-                />
-              </div>
-              <div className="flex-1">
-                <label className="text-xs text-slate-400 font-medium mb-1 block">
-                  Sex
-                </label>
-                <select
-                  value={form.gender}
-                  onChange={(e) => setForm({ ...form, gender: e.target.value })}
-                  className="w-full border border-[#dfe8e3] bg-[#fbfcfb] rounded-2xl px-3 py-2 text-sm text-slate-800 focus:outline-none focus:border-[#6ba79e]"
-                >
-                  <option value="2">Female</option>
-                  <option value="1">Male</option>
-                </select>
-              </div>
+          <section className="mx-4 overflow-hidden rounded-2xl bg-white shadow-sm">
+            <div className="px-4 pt-4 pb-2">
+              <p className="text-sm font-semibold text-[#1c1c1e]">Add your latest lab values</p>
+              <p className="mt-0.5 text-xs text-[#8e8e93]">
+                All fields optional · values compared against population reference
+              </p>
             </div>
-
-            {fields.map((f) => (
-              <div key={f.key}>
-                <label className="text-xs text-slate-400 font-medium mb-1 block">
-                  {f.label} ({f.unit})
+            <div className="divide-y divide-[#e5e5ea] border-t border-[#e5e5ea]">
+              {fields.map((f) => (
+                <label key={f.key} className="flex items-center justify-between px-4 py-3">
+                  <span className="text-sm text-[#1c1c1e]">
+                    {f.label}
+                    <span className="ml-1 text-xs text-[#8e8e93]">{f.unit}</span>
+                  </span>
+                  <input
+                    type="number"
+                    step="0.01"
+                    placeholder="—"
+                    value={form[f.key] ?? ""}
+                    onChange={(e) => setForm({ ...form, [f.key]: e.target.value })}
+                    className="w-24 text-right text-sm font-semibold text-[#007aff] bg-transparent focus:outline-none placeholder:text-[#c7c7cc]"
+                  />
                 </label>
-                <input
-                  type="number"
-                  step="0.01"
-                  placeholder="optional"
-                  value={form[f.key as keyof typeof form]}
-                  onChange={(e) =>
-                    setForm({ ...form, [f.key]: e.target.value })
-                  }
-                  className="w-full border border-[#dfe8e3] bg-[#fbfcfb] rounded-2xl px-3 py-2 text-sm text-slate-800 focus:outline-none focus:border-[#6ba79e]"
-                />
-              </div>
-            ))}
-
-            <button
-              onClick={handleSubmit}
-              disabled={!form.age || loading}
-              className="w-full py-3 bg-[#347b73] text-white rounded-[1.25rem] font-semibold text-sm disabled:opacity-40 hover:bg-[#286961] transition-colors"
-            >
-              {loading ? "Analysing..." : "Analyse →"}
-            </button>
-          </div>
+              ))}
+            </div>
+            <div className="px-4 py-4">
+              <button
+                onClick={handleAnalyse}
+                disabled={loading}
+                className="w-full rounded-2xl bg-[#007aff] py-3 text-sm font-semibold text-white disabled:opacity-40"
+              >
+                {loading ? "Analysing…" : "Show results"}
+              </button>
+              <p className="mt-2 text-center text-[10px] text-[#c7c7cc]">
+                Prototype · showing sample data
+              </p>
+            </div>
+          </section>
         ) : (
           <>
-            <div className="bg-[#eef7f4] border border-[#c8ded8] rounded-[1.75rem] p-5 text-center mb-5">
-              <p className="text-xs font-semibold tracking-widest text-[#347b73] uppercase mb-2">
-                Results
-              </p>
-              <p className="text-sm text-slate-500">
-                {results.length} biomarkers analysed
+            <div className="mx-4 mb-3 overflow-hidden rounded-2xl bg-white shadow-sm px-4 py-3">
+              <p className="text-xs text-[#8e8e93]">
+                Results compared against population reference ranges. This is not a clinical interpretation — see your results page for the full picture.
               </p>
             </div>
 
-            <div className="bg-white rounded-[1.75rem] border border-[#dfe8e3] divide-y divide-[#eef1ef] overflow-hidden shadow-[0_8px_22px_rgba(45,65,59,0.05)]">
-              {results.map((r) => {
-                const s =
-                  statusConfig[r.interpretation] ||
-                  statusConfig["Normal range"];
-                return (
-                  <div key={r.biomarker} className="p-4">
-                    <div className="flex justify-between items-center mb-2">
-                      <span className="text-sm font-medium text-slate-700">
-                        {r.biomarker}
-                      </span>
-                      <span className="text-sm font-semibold text-slate-800">
-                        {r.user_value}
-                      </span>
+            <p className="mb-2 px-4 text-xs font-semibold uppercase tracking-wider text-[#8e8e93]">
+              Your markers
+            </p>
+            <section className="mx-4 overflow-hidden rounded-2xl bg-white shadow-sm">
+              <div className="divide-y divide-[#e5e5ea]">
+                {results.map((r) => (
+                  <div key={r.biomarker} className="px-4 py-3">
+                    <div className="flex items-baseline justify-between">
+                      <span className="text-sm font-semibold">{r.biomarker}</span>
+                      <div>
+                        <span className={`text-[20px] font-bold tabular-nums leading-none tracking-tight ${r.status === "above" ? "text-[#ff3b30]" : "text-[#1c1c1e]"}`}>
+                          {r.user_value}
+                        </span>
+                        <span className="ml-1 text-xs text-[#8e8e93]">{r.unit}</span>
+                      </div>
                     </div>
-                    <div className="h-1.5 bg-[#eef1ef] rounded-full overflow-hidden mb-2">
+                    <div className="relative mt-2 h-1.5 rounded-full bg-[#e5e5ea]">
                       <div
-                        className={`h-full rounded-full ${s.bar}`}
-                        style={{ width: `${r.percentile}%` }}
+                        className={`absolute h-full rounded-full ${r.status === "above" ? "bg-[#ff3b3040]" : "bg-[#34c75940]"}`}
+                        style={{ width: `${Math.min(r.percentile, 100)}%` }}
+                      />
+                      <div
+                        className={`absolute top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white shadow-sm ${r.status === "above" ? "bg-[#ff3b30]" : "bg-[#34c759]"}`}
+                        style={{ left: `${Math.min(r.percentile, 97)}%` }}
                       />
                     </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-xs text-slate-400">
-                        {r.percentile}th percentile · mean {r.pop_mean}
-                      </span>
-                      <span
-                        className={`text-xs font-semibold px-2.5 py-1 rounded-full ${s.chip}`}
-                      >
-                        {s.label}
-                      </span>
+                    <div className="mt-1 flex justify-between text-[10px] text-[#c7c7cc]">
+                      <span>{r.percentile}th percentile</span>
+                      <span>pop. avg {r.pop_mean} {r.unit}</span>
                     </div>
                   </div>
-                );
-              })}
+                ))}
+              </div>
+            </section>
+
+            <div className="mx-4 mt-3 overflow-hidden rounded-2xl bg-[#fff4e6] px-4 py-3 shadow-sm">
+              <p className="text-xs font-semibold text-[#7c4b00]">What this does not mean</p>
+              <p className="mt-1 text-xs leading-5 text-[#9c6a00]">
+                These comparisons show where your values fall relative to a reference population. They are not a diagnosis. Bring these results to your clinician for interpretation in your full clinical context.
+              </p>
             </div>
 
-            <button
-              onClick={() => setSubmitted(false)}
-              className="w-full mt-4 py-3 border border-[#dfe8e3] text-slate-500 rounded-[1.25rem] text-sm font-medium hover:bg-white transition-colors"
-            >
-              ← Enter new values
-            </button>
+            <div className="px-4 mt-4">
+              <button
+                onClick={() => setSubmitted(false)}
+                className="w-full py-3 text-sm font-semibold text-[#007aff]"
+              >
+                ← Enter different values
+              </button>
+            </div>
           </>
         )}
-
-        <NavBar active="blood" />
       </div>
+
+      <NavBar active="blood" />
     </div>
   );
 }
 
 function NavBar({ active }: { active: string }) {
   const items = [
-    { href: "/upload", icon: "🏠", label: "Home" },
-    { href: "/blood", icon: "🩸", label: "Blood" },
-    { href: "/dna", icon: "🧬", label: "DNA" },
-    { href: "/pgx", icon: "💊", label: "PGx" },
+    { href: "/",      icon: "✦",  label: "Results" },
+    { href: "/blood", icon: "🩸", label: "Blood"   },
+    { href: "/dna",   icon: "🧬", label: "DNA"     },
+    { href: "/pgx",   icon: "💊", label: "PGx"     },
   ];
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-white/95 border-t border-[#dfe8e3] flex justify-around py-3 px-4 backdrop-blur">
-      {items.map((i) => (
-        <Link
-          key={i.href}
-          href={i.href}
-          className={`flex flex-col items-center gap-0.5 ${
-            active === i.label.toLowerCase()
-              ? "text-[#347b73]"
-              : "text-slate-400"
-          }`}
-        >
-          <span className="text-xl">{i.icon}</span>
-          <span className="text-[10px] font-medium">{i.label}</span>
-        </Link>
-      ))}
-    </div>
+    <nav className="fixed bottom-0 left-0 right-0 z-10 border-t border-[#e5e5ea] bg-white/95 px-5 pb-8 pt-2 backdrop-blur">
+      <div className="mx-auto flex max-w-[430px] justify-around">
+        {items.map((i) => (
+          <Link
+            key={i.href}
+            href={i.href}
+            className={`flex flex-col items-center gap-0.5 text-[10px] font-semibold ${
+              active === i.label.toLowerCase() ? "text-[#007aff]" : "text-[#8e8e93]"
+            }`}
+          >
+            <span className="text-lg leading-none">{i.icon}</span>
+            <span>{i.label}</span>
+          </Link>
+        ))}
+      </div>
+    </nav>
   );
 }
