@@ -123,7 +123,15 @@ function SegmentedBar({ value, cfg }: { value: number; cfg: typeof MARKERS[Marke
 }
 
 // ─── doctor summary sheet content ─────────────────────────────────────────────
-function DoctorSummarySheet({ vals, onClose }: { vals: DefaultValues; onClose: () => void }) {
+function DoctorSummarySheet({
+  vals,
+  panelLabel,
+  onClose,
+}: {
+  vals: DefaultValues;
+  panelLabel: string;
+  onClose: () => void;
+}) {
   return (
     <div className="fixed inset-0 z-50 flex items-end bg-black/40" onClick={onClose}>
       <div
@@ -139,7 +147,7 @@ function DoctorSummarySheet({ vals, onClose }: { vals: DefaultValues; onClose: (
           <div>
             <p className="text-xs font-semibold uppercase tracking-wider text-[#8e8e93] mb-1">Generated from</p>
             <p>1 DNA file · CYP2C19 *2/*2</p>
-            <p>1 blood panel · May 2026</p>
+            <p>1 blood panel · {panelLabel}</p>
           </div>
 
           <div className="border-t border-[#e5e5ea] pt-3">
@@ -190,6 +198,8 @@ export default function Home() {
   const [showExtraMarkers, setShowExtraMarkers] = useState(false);
   const [showTrend, setShowTrend] = useState(false);
   const [exportReady, setExportReady] = useState(false);
+  const [panelLabel, setPanelLabel] = useState("May 2026");
+  const [panelUploaded, setPanelUploaded] = useState(false);
   const [b12, setB12] = useState("520");
   const [folate, setFolate] = useState("12.4");
 
@@ -207,12 +217,25 @@ export default function Home() {
     setEditDraft(String(vals[key]));
   }
 
+  function uploadNewerPanel() {
+    setVals({
+      apob: 112,
+      ldl: 138,
+      hscrp: 2.2,
+      homocysteine: 8.1,
+    });
+    setPanelLabel("June 2026");
+    setPanelUploaded(true);
+    setShowTrend(true);
+    setExportReady(false);
+  }
+
   const toggle = (id: string) => setExpandedCard(prev => prev === id ? null : id);
   const lipidSev = lipidSeverity(vals);
 
   return (
     <main className="min-h-screen bg-[#f2f2f7] pb-28 text-[#1c1c1e]">
-      {showSummary && <DoctorSummarySheet vals={vals} onClose={() => setShowSummary(false)} />}
+      {showSummary && <DoctorSummarySheet vals={vals} panelLabel={panelLabel} onClose={() => setShowSummary(false)} />}
       <div className="mx-auto flex w-full max-w-[430px] flex-col">
 
         {/* ── Header ────────────────────────────────────────────────── */}
@@ -220,7 +243,7 @@ export default function Home() {
           <div>
             <p className="text-xs font-semibold uppercase tracking-wider text-[#8e8e93]">HealthLens</p>
             <h1 className="mt-0.5 text-[26px] font-bold leading-tight tracking-tight">Your May health check</h1>
-            <p className="mt-0.5 text-xs text-[#8e8e93]">3 results · 1 DNA file · 1 blood panel</p>
+            <p className="mt-0.5 text-xs text-[#8e8e93]">3 results · 1 DNA file · {panelLabel} blood panel</p>
           </div>
           <Link href="/upload" className="rounded-full bg-white px-3 py-2 text-xs font-semibold text-[#007aff] shadow-sm">
             Edit inputs
@@ -253,7 +276,7 @@ export default function Home() {
         <section className="mx-4 mb-5 overflow-hidden rounded-2xl bg-white shadow-sm">
           <div className="divide-y divide-[#e5e5ea]">
             <DataRow label="DNA file" value="CYP2C19 · MTHFR · APOE" />
-            <DataRow label="Blood panel" value="ApoB · LDL-C · hs-CRP · Homocysteine" />
+            <DataRow label="Blood panel" value={`${panelLabel} · ApoB · LDL-C · hs-CRP · Homocysteine`} />
             <DataRow label="Medication" value="Clopidogrel" />
             <DataRow label="Missing optional markers" value={showExtraMarkers ? "B12 + folate added" : "B12 · folate"} />
           </div>
@@ -523,10 +546,10 @@ export default function Home() {
               <span className="text-sm font-semibold text-[#1c1c1e]">Preview doctor summary</span>
               <span className="text-[#c7c7cc]">›</span>
             </button>
-            <Link href="/upload" className="flex w-full items-center justify-between px-4 py-3.5">
+            <button onClick={uploadNewerPanel} className="flex w-full items-center justify-between px-4 py-3.5">
               <span className="text-sm font-semibold text-[#1c1c1e]">Upload newer panel</span>
-              <span className="text-[#c7c7cc]">›</span>
-            </Link>
+              <span className="text-xs text-[#c7c7cc]">{panelUploaded ? "Loaded" : "›"}</span>
+            </button>
             <button
               onClick={() => setShowTrend(prev => !prev)}
               className="flex w-full items-center justify-between px-4 py-3.5"
