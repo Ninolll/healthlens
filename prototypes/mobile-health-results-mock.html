@@ -1,0 +1,1127 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Trace Health - Mobile Results Mock</title>
+  <style>
+    :root {
+      --page: #e8ece4;
+      --phone: #fbfaf5;
+      --surface: #ffffff;
+      --surface-soft: #f4f6ef;
+      --surface-sage: #edf4ec;
+      --ink: #17222a;
+      --muted: #66737a;
+      --subtle: #879198;
+      --line: #dde4dc;
+      --teal: #1f6f68;
+      --teal-dark: #164f4b;
+      --sage: #7f9b86;
+      --amber: #a86d21;
+      --amber-bg: #fff0d7;
+      --red: #a14444;
+      --red-bg: #fde7e4;
+      --green: #2d7052;
+      --green-bg: #e5f3eb;
+      --blue: #355c7a;
+      --blue-bg: #e7eef4;
+      --shadow: 0 26px 70px rgba(23, 34, 42, 0.18);
+      --card-shadow: 0 10px 24px rgba(32, 50, 45, 0.07);
+      --radius-xl: 28px;
+      --radius-lg: 22px;
+      --radius-md: 16px;
+      --radius-sm: 12px;
+      --space: 18px;
+      --tap: 44px;
+      font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 28% 18%, rgba(127, 155, 134, 0.22), transparent 32%),
+        linear-gradient(145deg, #f1f2eb 0%, var(--page) 48%, #dce5df 100%);
+    }
+
+    button {
+      border: 0;
+      font: inherit;
+      color: inherit;
+      cursor: pointer;
+    }
+
+    .phone {
+      width: min(390px, calc(100vw - 28px));
+      height: min(844px, calc(100vh - 28px));
+      min-height: 720px;
+      position: relative;
+      overflow: hidden;
+      border: 10px solid #11191f;
+      border-radius: 48px;
+      background: var(--phone);
+      box-shadow: var(--shadow);
+    }
+
+    .phone::before {
+      content: "";
+      position: absolute;
+      z-index: 20;
+      top: 9px;
+      left: 50%;
+      width: 116px;
+      height: 28px;
+      border-radius: 999px;
+      transform: translateX(-50%);
+      background: #11191f;
+    }
+
+    .app {
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      background:
+        linear-gradient(180deg, rgba(237, 244, 236, 0.9) 0%, rgba(251, 250, 245, 0) 260px),
+        var(--phone);
+    }
+
+    .statusbar {
+      height: 48px;
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      padding: 0 24px 8px;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0;
+    }
+
+    .status-icons {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+
+    .signal {
+      display: inline-grid;
+      grid-auto-flow: column;
+      align-items: end;
+      gap: 2px;
+      height: 12px;
+    }
+
+    .signal i {
+      display: block;
+      width: 3px;
+      border-radius: 2px;
+      background: var(--ink);
+    }
+
+    .signal i:nth-child(1) { height: 4px; }
+    .signal i:nth-child(2) { height: 7px; }
+    .signal i:nth-child(3) { height: 10px; }
+
+    .battery {
+      width: 22px;
+      height: 11px;
+      border: 1.8px solid var(--ink);
+      border-radius: 4px;
+      position: relative;
+    }
+
+    .battery::before {
+      content: "";
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 13px;
+      height: 5px;
+      border-radius: 2px;
+      background: var(--ink);
+    }
+
+    .battery::after {
+      content: "";
+      position: absolute;
+      right: -4px;
+      top: 3px;
+      width: 2px;
+      height: 5px;
+      border-radius: 0 2px 2px 0;
+      background: var(--ink);
+    }
+
+    .topbar {
+      display: grid;
+      grid-template-columns: var(--tap) 1fr auto;
+      gap: 10px;
+      align-items: center;
+      padding: 4px var(--space) 14px;
+    }
+
+    .icon-btn {
+      min-width: var(--tap);
+      height: var(--tap);
+      display: grid;
+      place-items: center;
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.76);
+      box-shadow: inset 0 0 0 1px rgba(31, 111, 104, 0.08);
+    }
+
+    .icon {
+      width: 20px;
+      height: 20px;
+      stroke: currentColor;
+      stroke-width: 2.3;
+      fill: none;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .title h1 {
+      margin: 0;
+      font-size: 22px;
+      line-height: 1.08;
+      letter-spacing: 0;
+    }
+
+    .title p {
+      margin: 4px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.25;
+    }
+
+    .small-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      min-height: 32px;
+      padding: 0 10px;
+      border-radius: 999px;
+      color: var(--teal-dark);
+      background: #e4f0e8;
+      font-size: 11px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    .small-badge::before {
+      content: "";
+      width: 7px;
+      height: 7px;
+      border-radius: 99px;
+      background: var(--teal);
+    }
+
+    .scroll {
+      flex: 1;
+      overflow-y: auto;
+      padding: 0 var(--space) 96px;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+    }
+
+    .scroll::-webkit-scrollbar {
+      display: none;
+    }
+
+    .hero {
+      padding: 22px;
+      border: 1px solid rgba(31, 111, 104, 0.16);
+      border-radius: var(--radius-xl);
+      background:
+        linear-gradient(145deg, #ffffff 0%, #f2f7ef 100%);
+      box-shadow: var(--card-shadow);
+    }
+
+    .eyebrow {
+      margin: 0 0 10px;
+      color: var(--teal-dark);
+      font-size: 12px;
+      font-weight: 850;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .hero h2 {
+      margin: 0;
+      max-width: 300px;
+      font-size: 25px;
+      line-height: 1.12;
+      letter-spacing: 0;
+    }
+
+    .hero p {
+      margin: 13px 0 0;
+      color: #44545c;
+      font-size: 14.5px;
+      line-height: 1.48;
+    }
+
+    .badge-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 17px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      min-height: 28px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 850;
+      line-height: 1;
+      white-space: nowrap;
+    }
+
+    .badge.high { color: var(--red); background: var(--red-bg); }
+    .badge.med { color: var(--amber); background: var(--amber-bg); }
+    .badge.info { color: var(--blue); background: var(--blue-bg); }
+    .badge.good { color: var(--green); background: var(--green-bg); }
+    .badge.neutral { color: #526064; background: #edf0ec; }
+
+    .note {
+      display: flex;
+      gap: 10px;
+      margin-top: 16px;
+      padding: 12px;
+      border-radius: var(--radius-md);
+      color: #4e5c61;
+      background: rgba(255, 255, 255, 0.78);
+      font-size: 12.5px;
+      line-height: 1.38;
+    }
+
+    .note strong {
+      color: var(--ink);
+    }
+
+    .section {
+      margin-top: 22px;
+    }
+
+    .section-head {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 10px;
+      padding: 0 2px;
+    }
+
+    .section h3 {
+      margin: 0;
+      font-size: 17px;
+      line-height: 1.2;
+      letter-spacing: 0;
+    }
+
+    .section .hint {
+      margin: 0;
+      color: var(--subtle);
+      font-size: 12px;
+      font-weight: 750;
+    }
+
+    .rec-card,
+    .data-card,
+    .trace-card,
+    .action-card,
+    .safety-card {
+      border: 1px solid rgba(40, 72, 64, 0.1);
+      border-radius: var(--radius-lg);
+      background: rgba(255, 255, 255, 0.92);
+      box-shadow: var(--card-shadow);
+    }
+
+    .rec-card {
+      position: relative;
+      padding: 17px;
+      overflow: hidden;
+    }
+
+    .rec-card + .rec-card {
+      margin-top: 12px;
+    }
+
+    .rec-card::before {
+      content: "";
+      position: absolute;
+      inset: 0 auto 0 0;
+      width: 5px;
+      background: var(--teal);
+    }
+
+    .rec-card.high::before { background: var(--red); }
+    .rec-card.med::before { background: var(--amber); }
+    .rec-card.guard::before { background: var(--blue); }
+
+    .rec-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+    }
+
+    .rank {
+      display: inline-grid;
+      place-items: center;
+      width: 26px;
+      height: 26px;
+      flex: 0 0 auto;
+      border-radius: 10px;
+      color: #fff;
+      background: var(--teal);
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .rec-title {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      min-width: 0;
+    }
+
+    .rec-title h4 {
+      margin: 1px 0 0;
+      font-size: 16px;
+      line-height: 1.23;
+      letter-spacing: 0;
+    }
+
+    .priority {
+      flex: 0 0 auto;
+      min-height: 28px;
+      padding: 7px 9px 0;
+      border-radius: 999px;
+      font-size: 10px;
+      font-weight: 900;
+      letter-spacing: 0.04em;
+    }
+
+    .priority.high { color: var(--red); background: var(--red-bg); }
+    .priority.med { color: var(--amber); background: var(--amber-bg); }
+    .priority.guard { color: var(--blue); background: var(--blue-bg); }
+
+    .rec-card p {
+      margin: 12px 0 0 36px;
+      color: #45545a;
+      font-size: 13.5px;
+      line-height: 1.48;
+    }
+
+    .rec-card .badge-row {
+      margin-left: 36px;
+      margin-top: 13px;
+    }
+
+    .grid-two {
+      display: grid;
+      gap: 12px;
+    }
+
+    .data-card {
+      padding: 16px;
+    }
+
+    .data-card h4 {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      margin: 0 0 12px;
+      font-size: 14px;
+      line-height: 1.2;
+    }
+
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--teal);
+    }
+
+    .marker-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px;
+      align-items: center;
+      min-height: 44px;
+      border-top: 1px solid var(--line);
+    }
+
+    .marker-row:first-of-type {
+      border-top: 0;
+    }
+
+    .marker-row b {
+      display: block;
+      font-size: 13.5px;
+      line-height: 1.2;
+    }
+
+    .marker-row span {
+      display: block;
+      margin-top: 3px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.25;
+    }
+
+    .value {
+      text-align: right;
+      font-size: 12px;
+      font-weight: 850;
+      color: var(--ink);
+    }
+
+    .trace-toggle {
+      width: 100%;
+      min-height: 58px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      padding: 16px;
+      border-radius: var(--radius-lg);
+      background: var(--surface);
+      box-shadow: var(--card-shadow);
+      text-align: left;
+    }
+
+    .trace-toggle strong {
+      display: block;
+      font-size: 15px;
+      line-height: 1.2;
+    }
+
+    .trace-toggle span {
+      display: block;
+      margin-top: 3px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .chev {
+      transition: transform 180ms ease;
+    }
+
+    .trace-card {
+      display: none;
+      margin-top: 10px;
+      padding: 6px 16px 16px;
+    }
+
+    .trace-card.open {
+      display: block;
+      animation: reveal 180ms ease both;
+    }
+
+    .trace-toggle[aria-expanded="true"] .chev {
+      transform: rotate(180deg);
+    }
+
+    @keyframes reveal {
+      from { opacity: 0; transform: translateY(-4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .step {
+      position: relative;
+      display: grid;
+      grid-template-columns: 30px 1fr;
+      gap: 10px;
+      padding-top: 14px;
+    }
+
+    .step::before {
+      content: "";
+      position: absolute;
+      left: 14px;
+      top: 36px;
+      bottom: -13px;
+      width: 1px;
+      background: var(--line);
+    }
+
+    .step:last-child::before {
+      display: none;
+    }
+
+    .step-num {
+      display: grid;
+      place-items: center;
+      width: 30px;
+      height: 30px;
+      border-radius: 11px;
+      color: var(--teal-dark);
+      background: var(--surface-sage);
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .step b {
+      display: block;
+      margin-top: 1px;
+      font-size: 13.5px;
+      line-height: 1.2;
+    }
+
+    .step p {
+      margin: 3px 0 0;
+      color: var(--muted);
+      font-size: 12.5px;
+      line-height: 1.35;
+    }
+
+    .action-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .action-card {
+      min-height: 58px;
+      display: grid;
+      grid-template-columns: 28px 1fr auto;
+      align-items: center;
+      gap: 10px;
+      padding: 13px 14px;
+    }
+
+    .check {
+      display: grid;
+      place-items: center;
+      width: 28px;
+      height: 28px;
+      border-radius: 10px;
+      color: var(--teal-dark);
+      background: var(--surface-sage);
+      font-weight: 900;
+    }
+
+    .action-card b {
+      display: block;
+      font-size: 14px;
+      line-height: 1.2;
+    }
+
+    .action-card span {
+      display: block;
+      margin-top: 2px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.25;
+    }
+
+    .text-btn {
+      min-height: 38px;
+      padding: 0 12px;
+      border-radius: 999px;
+      color: var(--teal-dark);
+      background: #e7f1ea;
+      font-size: 12px;
+      font-weight: 850;
+      white-space: nowrap;
+    }
+
+    .safety-card {
+      padding: 17px;
+      background: #fffaf0;
+      border-color: rgba(168, 109, 33, 0.18);
+    }
+
+    .safety-card h4 {
+      margin: 0 0 8px;
+      color: #704b1d;
+      font-size: 15px;
+      line-height: 1.2;
+    }
+
+    .safety-card p {
+      margin: 0;
+      color: #5d564b;
+      font-size: 13.5px;
+      line-height: 1.48;
+    }
+
+    .bottom-nav {
+      position: absolute;
+      z-index: 15;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 2px;
+      padding: 8px 14px 18px;
+      border-top: 1px solid rgba(23, 34, 42, 0.08);
+      background: rgba(251, 250, 245, 0.96);
+      backdrop-filter: blur(10px);
+    }
+
+    .nav-item {
+      min-height: 54px;
+      display: grid;
+      place-items: center;
+      gap: 3px;
+      border-radius: 18px;
+      color: var(--muted);
+      background: transparent;
+      font-size: 11px;
+      font-weight: 800;
+    }
+
+    .nav-item svg {
+      width: 20px;
+      height: 20px;
+      stroke-width: 2.25;
+    }
+
+    .nav-item.active {
+      color: var(--teal-dark);
+      background: var(--surface-sage);
+    }
+
+    .sheet-backdrop {
+      position: absolute;
+      inset: 0;
+      z-index: 30;
+      display: none;
+      align-items: end;
+      background: rgba(17, 25, 31, 0.32);
+    }
+
+    .sheet-backdrop.open {
+      display: flex;
+    }
+
+    .sheet {
+      width: 100%;
+      padding: 10px 18px 22px;
+      border-radius: 30px 30px 0 0;
+      background: var(--phone);
+      box-shadow: 0 -20px 44px rgba(23, 34, 42, 0.18);
+      animation: slideUp 190ms ease both;
+    }
+
+    @keyframes slideUp {
+      from { transform: translateY(16px); opacity: 0.8; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    .grabber {
+      width: 44px;
+      height: 5px;
+      margin: 0 auto 16px;
+      border-radius: 99px;
+      background: #c8d2cb;
+    }
+
+    .sheet h3 {
+      margin: 0;
+      font-size: 19px;
+      line-height: 1.2;
+    }
+
+    .sheet p {
+      margin: 11px 0 18px;
+      color: #45545a;
+      font-size: 15px;
+      line-height: 1.5;
+    }
+
+    .sheet-actions {
+      display: flex;
+      gap: 10px;
+    }
+
+    .primary-btn,
+    .secondary-btn {
+      min-height: 48px;
+      flex: 1;
+      border-radius: 16px;
+      font-weight: 850;
+    }
+
+    .primary-btn {
+      color: #fff;
+      background: var(--teal-dark);
+    }
+
+    .secondary-btn {
+      color: var(--teal-dark);
+      background: var(--surface-sage);
+    }
+
+    .toast {
+      position: absolute;
+      z-index: 35;
+      left: 22px;
+      right: 22px;
+      bottom: 94px;
+      display: none;
+      align-items: center;
+      gap: 10px;
+      min-height: 50px;
+      padding: 12px 14px;
+      border-radius: 18px;
+      color: #fff;
+      background: #172c2a;
+      box-shadow: 0 16px 36px rgba(23, 34, 42, 0.28);
+      font-size: 13px;
+      font-weight: 750;
+    }
+
+    .toast.show {
+      display: flex;
+      animation: toastIn 220ms ease both;
+    }
+
+    @keyframes toastIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @media (max-height: 760px) {
+      body {
+        padding: 8px;
+      }
+
+      .phone {
+        min-height: 0;
+        height: calc(100vh - 16px);
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="phone" aria-label="Trace Health iPhone mock-up">
+    <div class="app">
+      <div class="statusbar" aria-hidden="true">
+        <span>9:41</span>
+        <span class="status-icons">
+          <span class="signal"><i></i><i></i><i></i></span>
+          <span>5G</span>
+          <span class="battery"></span>
+        </span>
+      </div>
+
+      <header class="topbar">
+        <button class="icon-btn" aria-label="Back">
+          <svg class="icon" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"></path></svg>
+        </button>
+        <div class="title">
+          <h1>Results</h1>
+          <p>Maya Chen · May 2026</p>
+        </div>
+        <span class="small-badge">Evidence-backed</span>
+      </header>
+
+      <section class="scroll" id="appScroll">
+        <article class="hero">
+          <p class="eyebrow">Genotype + blood test review</p>
+          <h2>Medication safety should be reviewed, and lipid follow-up should be prioritized.</h2>
+          <p>The strongest finding comes from a CYP2C19 poor-metabolizer result combined with current clopidogrel use after ACS/PCI. Blood markers do not drive the drug recommendation, but elevated ApoB, LDL-C, and hs-CRP add cardiovascular follow-up context.</p>
+          <div class="badge-row">
+            <span class="badge high">High: medication safety</span>
+            <span class="badge med">Medium-high: lipid follow-up</span>
+            <span class="badge info">LLM wording only</span>
+          </div>
+          <div class="note">
+            <strong>Boundary</strong>
+            <span>Not a diagnosis. Requires practitioner review before any medication decision.</span>
+          </div>
+        </article>
+
+        <section class="section">
+          <div class="section-head">
+            <h3>Ranked recommendations</h3>
+            <p class="hint">Rule-backed</p>
+          </div>
+
+          <article class="rec-card high">
+            <div class="rec-top">
+              <div class="rec-title">
+                <span class="rank">1</span>
+                <h4>Review clopidogrel with prescribing clinician</h4>
+              </div>
+              <span class="priority high">HIGH</span>
+            </div>
+            <p>CYP2C19 *2/*2 maps to Poor Metabolizer. For ACS/PCI, CPIC classifies the clopidogrel recommendation as strong: avoid clopidogrel if possible and consider alternatives when appropriate.</p>
+            <div class="badge-row">
+              <span class="badge good">Guideline-backed</span>
+              <span class="badge neutral">CPIC 2022</span>
+              <span class="badge high">Clinician review required</span>
+            </div>
+          </article>
+
+          <article class="rec-card med">
+            <div class="rec-top">
+              <div class="rec-title">
+                <span class="rank">2</span>
+                <h4>Prioritize lipid and inflammation follow-up</h4>
+              </div>
+              <span class="priority med">MED-HIGH</span>
+            </div>
+            <p>ApoB and LDL-C are above selected reference thresholds, while hs-CRP is elevated. This increases review priority in a cardiovascular context.</p>
+            <div class="badge-row">
+              <span class="badge med">Blood-test driven</span>
+              <span class="badge neutral">Lab range + lipid references</span>
+              <span class="badge info">Monitoring priority</span>
+            </div>
+          </article>
+
+          <article class="rec-card guard">
+            <div class="rec-top">
+              <div class="rec-title">
+                <span class="rank">3</span>
+                <h4>Do not over-attribute blood markers to genotype</h4>
+              </div>
+              <span class="priority guard">GUARDRAIL</span>
+            </div>
+            <p>The CYP2C19 result explains medication metabolism, not the cause of ApoB, LDL-C, or hs-CRP values. Drug-gene evidence and biomarker evidence are separated.</p>
+            <div class="badge-row">
+              <span class="badge info">Safety guardrail</span>
+              <span class="badge neutral">Prevents genotype overclaim</span>
+            </div>
+          </article>
+        </section>
+
+        <section class="section">
+          <div class="section-head">
+            <h3>Signals used</h3>
+            <p class="hint">Combined inputs</p>
+          </div>
+
+          <div class="grid-two">
+            <article class="data-card">
+              <h4><span class="dot"></span>Blood markers</h4>
+              <div class="marker-row">
+                <div><b>ApoB</b><span>Atherogenic particle marker</span></div>
+                <div class="value">125 mg/dL · High</div>
+              </div>
+              <div class="marker-row">
+                <div><b>LDL-C</b><span>Lipid follow-up context</span></div>
+                <div class="value">155 mg/dL · High</div>
+              </div>
+              <div class="marker-row">
+                <div><b>hs-CRP</b><span>Inflammation marker</span></div>
+                <div class="value">4.2 mg/L · Elevated</div>
+              </div>
+              <div class="marker-row">
+                <div><b>HbA1c</b><span>Glycemic marker</span></div>
+                <div class="value">5.4% · In range</div>
+              </div>
+            </article>
+
+            <article class="data-card">
+              <h4><span class="dot"></span>Genotype context</h4>
+              <div class="marker-row">
+                <div><b>CYP2C19</b><span>*2/*2 → Poor Metabolizer</span></div>
+                <div class="value">Drug metabolism</div>
+              </div>
+              <div class="marker-row">
+                <div><b>APOE</b><span>Lipid-handling context</span></div>
+                <div class="value">Supportive only</div>
+              </div>
+              <div class="marker-row">
+                <div><b>MTHFR</b><span>No homocysteine abnormality</span></div>
+                <div class="value">No active flag</div>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <section class="section" id="evidence">
+          <div class="section-head">
+            <h3>Evidence trace</h3>
+            <p class="hint">Transparent rule path</p>
+          </div>
+          <button class="trace-toggle" id="traceToggle" aria-expanded="false" aria-controls="tracePanel">
+            <span>
+              <strong>Why recommendation #1 was flagged</strong>
+              <span>Tap to review the evidence chain</span>
+            </span>
+            <svg class="icon chev" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"></path></svg>
+          </button>
+          <article class="trace-card" id="tracePanel">
+            <div class="step">
+              <span class="step-num">1</span>
+              <div><b>User genotype</b><p>CYP2C19 *2/*2</p></div>
+            </div>
+            <div class="step">
+              <span class="step-num">2</span>
+              <div><b>Phenotype mapping</b><p>Poor Metabolizer</p></div>
+            </div>
+            <div class="step">
+              <span class="step-num">3</span>
+              <div><b>User context</b><p>Clopidogrel 75 mg/day + ACS/PCI</p></div>
+            </div>
+            <div class="step">
+              <span class="step-num">4</span>
+              <div><b>Reference match</b><p>CPIC CYP2C19 + clopidogrel guideline</p></div>
+            </div>
+            <div class="step">
+              <span class="step-num">5</span>
+              <div><b>Rule triggered</b><p>Strong recommendation + poor metabolizer → high medication safety alert</p></div>
+            </div>
+            <div class="step">
+              <span class="step-num">6</span>
+              <div><b>Boundary</b><p>Blood markers are cardiovascular context, not the driver of the clopidogrel recommendation.</p></div>
+            </div>
+          </article>
+        </section>
+
+        <section class="section">
+          <div class="section-head">
+            <h3>Next best actions</h3>
+            <p class="hint">Practitioner workflow</p>
+          </div>
+          <div class="action-list">
+            <article class="action-card">
+              <span class="check">✓</span>
+              <div><b>Verify medication context</b><span>Confirm ACS/PCI history and current dose</span></div>
+            </article>
+            <article class="action-card">
+              <span class="check">✓</span>
+              <div><b>Escalate to clinician review</b><span>Medication safety alert requires prescribing clinician</span></div>
+            </article>
+            <article class="action-card">
+              <span class="check">✓</span>
+              <div><b>Schedule lipid follow-up</b><span>Review ApoB, LDL-C, and hs-CRP together</span></div>
+              <button class="text-btn" id="taskBtn">Create task</button>
+            </article>
+            <article class="action-card">
+              <span class="check">✓</span>
+              <div><b>Send client-safe explanation</b><span>Plain-language, no self-change instruction</span></div>
+              <button class="text-btn" id="explainBtn">Preview</button>
+            </article>
+          </div>
+        </section>
+
+        <section class="section">
+          <article class="safety-card">
+            <h4>What this does not mean</h4>
+            <p>This result is not a diagnosis and does not instruct the user to change medication. The system identifies evidence-backed review priorities and generates clinician/client-facing explanations from structured evidence.</p>
+          </article>
+        </section>
+      </section>
+
+      <nav class="bottom-nav" aria-label="Main navigation">
+        <button class="nav-item active" data-tab="Results" aria-label="Results tab">
+          <svg class="icon" viewBox="0 0 24 24"><path d="M9 11l2 2 4-5"></path><path d="M20 6v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2z"></path></svg>
+          Results
+        </button>
+        <button class="nav-item" data-tab="Biomarkers" aria-label="Biomarkers tab">
+          <svg class="icon" viewBox="0 0 24 24"><path d="M6 20V10"></path><path d="M12 20V4"></path><path d="M18 20v-7"></path></svg>
+          Biomarkers
+        </button>
+        <button class="nav-item" data-tab="Evidence" aria-label="Evidence tab">
+          <svg class="icon" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
+          Evidence
+        </button>
+        <button class="nav-item" data-tab="Tasks" aria-label="Tasks tab">
+          <svg class="icon" viewBox="0 0 24 24"><path d="M9 6h11"></path><path d="M9 12h11"></path><path d="M9 18h11"></path><path d="M5 6h.01"></path><path d="M5 12h.01"></path><path d="M5 18h.01"></path></svg>
+          Tasks
+        </button>
+      </nav>
+
+      <div class="sheet-backdrop" id="sheetBackdrop" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
+        <section class="sheet">
+          <div class="grabber"></div>
+          <h3 id="sheetTitle">Client-safe explanation</h3>
+          <p>Your genetic result suggests your body may not activate this medication effectively. Because this medication is often used after heart procedures, this should be reviewed with your clinician.</p>
+          <div class="sheet-actions">
+            <button class="secondary-btn" id="closeSheet">Close</button>
+            <button class="primary-btn" id="copyExplainer">Mark ready</button>
+          </div>
+        </section>
+      </div>
+
+      <div class="toast" id="toast" role="status" aria-live="polite">
+        <span class="check">✓</span>
+        <span id="toastText">Follow-up task created for clinician review.</span>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    const traceToggle = document.querySelector("#traceToggle");
+    const tracePanel = document.querySelector("#tracePanel");
+    const explainBtn = document.querySelector("#explainBtn");
+    const sheetBackdrop = document.querySelector("#sheetBackdrop");
+    const closeSheet = document.querySelector("#closeSheet");
+    const copyExplainer = document.querySelector("#copyExplainer");
+    const taskBtn = document.querySelector("#taskBtn");
+    const toast = document.querySelector("#toast");
+    const toastText = document.querySelector("#toastText");
+    const navItems = document.querySelectorAll(".nav-item");
+    const appScroll = document.querySelector("#appScroll");
+    let toastTimer;
+
+    function showToast(message) {
+      toastText.textContent = message;
+      toast.classList.add("show");
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => toast.classList.remove("show"), 2400);
+    }
+
+    traceToggle.addEventListener("click", () => {
+      const isOpen = tracePanel.classList.toggle("open");
+      traceToggle.setAttribute("aria-expanded", String(isOpen));
+    });
+
+    explainBtn.addEventListener("click", () => {
+      sheetBackdrop.classList.add("open");
+    });
+
+    closeSheet.addEventListener("click", () => {
+      sheetBackdrop.classList.remove("open");
+    });
+
+    sheetBackdrop.addEventListener("click", (event) => {
+      if (event.target === sheetBackdrop) {
+        sheetBackdrop.classList.remove("open");
+      }
+    });
+
+    copyExplainer.addEventListener("click", () => {
+      sheetBackdrop.classList.remove("open");
+      showToast("Client-safe explanation marked ready.");
+    });
+
+    taskBtn.addEventListener("click", () => {
+      showToast("Follow-up task created for clinician review.");
+    });
+
+    navItems.forEach((item) => {
+      item.addEventListener("click", () => {
+        navItems.forEach((nav) => nav.classList.remove("active"));
+        item.classList.add("active");
+        if (item.dataset.tab === "Evidence") {
+          document.querySelector("#evidence").scrollIntoView({ behavior: "smooth", block: "start" });
+        } else if (item.dataset.tab === "Results") {
+          appScroll.scrollTo({ top: 0, behavior: "smooth" });
+        } else {
+          showToast(`${item.dataset.tab} tab selected in prototype.`);
+        }
+      });
+    });
+  </script>
+</body>
+</html>
