@@ -157,13 +157,6 @@ export default function DnaPage() {
               </div>
             </article>
 
-            <div className="overflow-hidden rounded-2xl bg-[#fff4e6] px-4 py-3 shadow-sm">
-              <p className="text-xs font-semibold text-[#7c4b00]">What this does not mean</p>
-              <p className="mt-1 text-xs leading-5 text-[#9c6a00]">
-                A CYP2C19 phenotype result describes how your body may process certain medications. It is not a diagnosis. Medication decisions must be made with your prescribing clinician.
-              </p>
-            </div>
-
             <button
               onClick={() => setSubmitted(false)}
               className="py-3 text-sm font-semibold text-[#007aff]"

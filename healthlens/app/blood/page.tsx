@@ -132,13 +132,6 @@ export default function BloodPage() {
               </div>
             </section>
 
-            <div className="mx-4 mt-3 overflow-hidden rounded-2xl bg-[#fff4e6] px-4 py-3 shadow-sm">
-              <p className="text-xs font-semibold text-[#7c4b00]">What this does not mean</p>
-              <p className="mt-1 text-xs leading-5 text-[#9c6a00]">
-                These comparisons show where your values fall relative to a reference population. They are not a diagnosis. Bring these results to your clinician for interpretation in your full clinical context.
-              </p>
-            </div>
-
             <div className="px-4 mt-4">
               <button
                 onClick={() => setSubmitted(false)}
