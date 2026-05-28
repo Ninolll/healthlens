@@ -187,6 +187,11 @@ export default function Home() {
   const [editDraft, setEditDraft] = useState("");
   const [expandedCard, setExpandedCard] = useState<string | null>(null);
   const [showSummary, setShowSummary] = useState(false);
+  const [showExtraMarkers, setShowExtraMarkers] = useState(false);
+  const [showTrend, setShowTrend] = useState(false);
+  const [exportReady, setExportReady] = useState(false);
+  const [b12, setB12] = useState("520");
+  const [folate, setFolate] = useState("12.4");
 
   function commitEdit() {
     const n = parseFloat(editDraft);
@@ -242,6 +247,17 @@ export default function Home() {
             <p className="text-[10px] text-[#8e8e93]">no active flag</p>
           </button>
         </div>
+
+        {/* ── Input data panel ──────────────────────────────────────── */}
+        <p className="mb-2 px-4 text-xs font-semibold uppercase tracking-wider text-[#8e8e93]">Input data</p>
+        <section className="mx-4 mb-5 overflow-hidden rounded-2xl bg-white shadow-sm">
+          <div className="divide-y divide-[#e5e5ea]">
+            <DataRow label="DNA file" value="CYP2C19 · MTHFR · APOE" />
+            <DataRow label="Blood panel" value="ApoB · LDL-C · hs-CRP · Homocysteine" />
+            <DataRow label="Medication" value="Clopidogrel" />
+            <DataRow label="Missing optional markers" value={showExtraMarkers ? "B12 + folate added" : "B12 · folate"} />
+          </div>
+        </section>
 
         {/* ── Result cards ──────────────────────────────────────────── */}
         <p className="mb-2 px-4 text-xs font-semibold uppercase tracking-wider text-[#8e8e93]">Your results</p>
@@ -394,9 +410,36 @@ export default function Home() {
                 <p className="text-xs text-[#8e8e93]">
                   If you have B12 or folate results, adding them here would give more context.
                 </p>
-                <button className="flex items-center gap-1.5 text-sm font-semibold text-[#007aff]">
-                  <span>＋</span> Add B12 / folate value
-                </button>
+                {showExtraMarkers ? (
+                  <div className="space-y-2">
+                    <p className="text-xs text-[#8e8e93]">Optional context added for this pathway.</p>
+                    <div className="grid grid-cols-2 gap-2">
+                      <label className="text-xs font-semibold text-[#8e8e93]">
+                        B12
+                        <input
+                          type="number"
+                          value={b12}
+                          onChange={e => setB12(e.target.value)}
+                          className="mt-1 w-full rounded-xl bg-[#f2f2f7] px-3 py-2 text-sm font-bold text-[#1c1c1e] focus:outline-none"
+                        />
+                      </label>
+                      <label className="text-xs font-semibold text-[#8e8e93]">
+                        Folate
+                        <input
+                          type="number"
+                          value={folate}
+                          onChange={e => setFolate(e.target.value)}
+                          className="mt-1 w-full rounded-xl bg-[#f2f2f7] px-3 py-2 text-sm font-bold text-[#1c1c1e] focus:outline-none"
+                        />
+                      </label>
+                    </div>
+                    <p className="text-[11px] text-[#c7c7cc]">Added values: B12 {b12} pg/mL · folate {folate} ng/mL</p>
+                  </div>
+                ) : (
+                  <button onClick={() => setShowExtraMarkers(true)} className="flex items-center gap-1.5 text-sm font-semibold text-[#007aff]">
+                    <span>＋</span> Add B12 / folate value
+                  </button>
+                )}
               </div>
             )}
           </article>
@@ -459,9 +502,13 @@ export default function Home() {
             })}
           </div>
           <div className="border-t border-[#e5e5ea] px-4 py-3">
-            <button className="flex items-center gap-1.5 text-sm font-semibold text-[#007aff]">
-              <span>＋</span> Add missing marker
-            </button>
+            {showExtraMarkers ? (
+              <p className="text-sm font-semibold text-[#34c759]">B12 and folate added to methylation context</p>
+            ) : (
+              <button onClick={() => setShowExtraMarkers(true)} className="flex items-center gap-1.5 text-sm font-semibold text-[#007aff]">
+                <span>＋</span> Add missing marker
+              </button>
+            )}
           </div>
         </section>
 
@@ -480,13 +527,25 @@ export default function Home() {
               <span className="text-sm font-semibold text-[#1c1c1e]">Upload newer panel</span>
               <span className="text-[#c7c7cc]">›</span>
             </Link>
-            <button className="flex w-full items-center justify-between px-4 py-3.5">
+            <button
+              onClick={() => setShowTrend(prev => !prev)}
+              className="flex w-full items-center justify-between px-4 py-3.5"
+            >
               <span className="text-sm font-semibold text-[#1c1c1e]">Compare with previous test</span>
-              <span className="text-xs text-[#c7c7cc]">Coming soon</span>
+              <span className="text-[#c7c7cc]">{showTrend ? "Hide" : "›"}</span>
             </button>
-            <button className="flex w-full items-center justify-between px-4 py-3.5">
+            {showTrend && (
+              <div className="border-t border-[#e5e5ea] px-4 py-3 text-sm text-[#3a3a3c]">
+                <p>ApoB changed from 118 to {vals.apob} mg/dL.</p>
+                <p className="mt-1 text-xs text-[#8e8e93]">Trend status: {vals.apob > 118 ? "increased since last panel" : "improved since last panel"}</p>
+              </div>
+            )}
+            <button
+              onClick={() => setExportReady(true)}
+              className="flex w-full items-center justify-between px-4 py-3.5"
+            >
               <span className="text-sm font-semibold text-[#1c1c1e]">Export PDF</span>
-              <span className="text-[#c7c7cc]">›</span>
+              <span className="text-xs text-[#c7c7cc]">{exportReady ? "Ready" : "›"}</span>
             </button>
           </div>
         </section>
@@ -520,6 +579,15 @@ function ChevronIcon({ open }: { open: boolean }) {
     >
       <path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
+  );
+}
+
+function DataRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-center justify-between gap-3 px-4 py-3">
+      <span className="text-sm font-semibold text-[#1c1c1e]">{label}</span>
+      <span className="text-right text-xs text-[#8e8e93]">{value}</span>
+    </div>
   );
 }
 
