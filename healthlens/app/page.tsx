@@ -54,6 +54,10 @@ const DEFAULT_VALUES: DefaultValues = {
   homocysteine: 7.8,
 };
 
+// Previous blood panel — used for trend comparison
+const PREV_PANEL = { apob: 118, ldl: 142, hscrp: 3.8 };
+const PREV_PANEL_LABEL = "Nov 2025";
+
 function getStatus(key: MarkerKey, value: number): Status {
   const m = MARKERS[key];
   if ("lowBelow" in m && value < (m as typeof MARKERS.homocysteine).lowBelow) return "low";
@@ -140,6 +144,7 @@ function DoctorSummarySheet({
             <p className="text-xs font-semibold uppercase tracking-wider text-[#8e8e93] mb-1">Generated from</p>
             <p>1 DNA file · CYP2C19 *2/*2</p>
             <p>1 blood panel · {panelLabel}</p>
+            <p>Medication: clopidogrel</p>
           </div>
           <div className="border-t border-[#e5e5ea] pt-3">
             <p className="text-xs font-semibold uppercase tracking-wider text-[#8e8e93] mb-1">Medication note</p>
@@ -157,6 +162,9 @@ function DoctorSummarySheet({
             <p>1. Is clopidogrel still appropriate given CYP2C19 *2/*2?</p>
             <p>2. Should ApoB and LDL-C be re-checked after a lipid review?</p>
             <p>3. Does hs-CRP elevation warrant further investigation?</p>
+            {vals.homocysteine >= MARKERS.homocysteine.optimalBelow && (
+              <p>4. Homocysteine is {vals.homocysteine} µmol/L — is this worth discussing in context of MTHFR?</p>
+            )}
           </div>
           <p className="border-t border-[#e5e5ea] pt-3 text-[10px] text-[#c7c7cc]">
             HealthLens · Prototype · Not a clinical report · For discussion purposes only
@@ -181,7 +189,6 @@ export default function Home() {
   const [expandedCard, setExpandedCard] = useState<string | null>(null);
   const [showSummary, setShowSummary] = useState(false);
   const [showExtraMarkers, setShowExtraMarkers] = useState(false);
-  const [showTrend, setShowTrend] = useState(false);
   const [exportReady, setExportReady] = useState(false);
   const [panelLabel, setPanelLabel] = useState("May 2026");
   const [panelUploaded, setPanelUploaded] = useState(false);
@@ -207,13 +214,16 @@ export default function Home() {
     setVals({ apob: 112, ldl: 138, hscrp: 2.2, homocysteine: 8.1 });
     setPanelLabel("June 2026");
     setPanelUploaded(true);
-    setShowTrend(true);
     setExportReady(false);
   }
 
   const toggle = (id: string) => setExpandedCard(prev => prev === id ? null : id);
   const lipidSev = lipidSeverity(vals);
   const nonOptimalCount = (["apob", "ldl", "hscrp"] as MarkerKey[]).filter(k => getStatus(k, vals[k]) !== "optimal").length;
+
+  // MTHFR card state: monitor when homocysteine is above normal range
+  const mthfrStatus: "monitor" | "reassuring" =
+    vals.homocysteine >= MARKERS.homocysteine.optimalBelow ? "monitor" : "reassuring";
 
   return (
     <main className="min-h-screen bg-[#f5f4f0] pb-28 text-[#1c1c1e]">
@@ -227,7 +237,7 @@ export default function Home() {
         <header className="flex items-start justify-between px-4 pb-4 pt-14">
           <div>
             <p className="text-xs font-semibold uppercase tracking-wider text-[#8e8e93]">HealthLens</p>
-            <h1 className="mt-0.5 text-[26px] font-bold leading-tight tracking-tight">Your May health check</h1>
+            <h1 className="mt-0.5 text-[26px] font-bold leading-tight tracking-tight">Your {panelLabel} check</h1>
             <p className="mt-1 text-sm text-[#3a3a3c]">
               1 to discuss · {nonOptimalCount} blood signal{nonOptimalCount !== 1 ? "s" : ""} · 1 DNA finding
             </p>
@@ -253,11 +263,22 @@ export default function Home() {
             <p className="text-[10px] text-[#8e8e93]">outside optimal</p>
           </button>
           <button onClick={() => toggle("methyl")} className="px-3 py-3.5 text-left">
-            <p className="text-[22px] font-bold tabular-nums leading-none text-[#34c759]">1</p>
-            <p className="mt-1 text-[11px] font-semibold text-[#1c1c1e]">Reassuring</p>
-            <p className="text-[10px] text-[#8e8e93]">no active flag</p>
+            <p className={`text-[22px] font-bold tabular-nums leading-none ${mthfrStatus === "monitor" ? "text-[#ff9500]" : "text-[#34c759]"}`}>1</p>
+            <p className="mt-1 text-[11px] font-semibold text-[#1c1c1e]">{mthfrStatus === "monitor" ? "Monitor" : "Reassuring"}</p>
+            <p className="text-[10px] text-[#8e8e93]">{mthfrStatus === "monitor" ? "blood signal" : "no active flag"}</p>
           </button>
         </div>
+
+        {/* ── Input data used ───────────────────────────────────────────── */}
+        <SectionLabel>Input data used</SectionLabel>
+        <section className="mx-4 mb-6 overflow-hidden rounded-2xl bg-white shadow-sm">
+          <div className="divide-y divide-[#f0ede8]">
+            <InputRow label="DNA file" value="23andMe raw data · CYP2C19 *2/*2" tag="Uploaded" />
+            <InputRow label="Blood panel" value={`${panelLabel} · 4 markers`} tag="Uploaded" />
+            <InputRow label="Medication" value="Clopidogrel" tag="On file" />
+            <InputRow label="Key markers used" value="ApoB · LDL-C · hs-CRP · Homocysteine" />
+          </div>
+        </section>
 
         {/* ── What matters now ──────────────────────────────────────────── */}
         <SectionLabel>What matters now</SectionLabel>
@@ -283,6 +304,15 @@ export default function Home() {
 
             {expandedCard === "med" && (
               <div className="bg-white px-4 py-4 space-y-4">
+                <div>
+                  <p className="mb-1.5 text-xs font-semibold uppercase tracking-wider text-[#8e8e93]">Data used</p>
+                  <div className="divide-y divide-[#f0ede8]">
+                    <DataUsedRow text="CYP2C19 genotype: *2/*2 (from DNA file)" />
+                    <DataUsedRow text="Medication on file: Clopidogrel" />
+                    <DataUsedRow text="Clinical indication: cardiovascular (assumed)" />
+                  </div>
+                </div>
+
                 <p className="text-sm leading-6 text-[#3a3a3c]">
                   Your CYP2C19 result (*2/*2, Poor Metabolizer) suggests substantially reduced ability to activate clopidogrel. This is clinically relevant if you are currently taking it for a cardiovascular indication.
                 </p>
@@ -305,9 +335,17 @@ export default function Home() {
                   </div>
                 </div>
 
-                <p className="text-[11px] text-[#c7c7cc]">Source: CPIC 2022 · PMID 35034351</p>
-                <p className="border-t border-[#f0ede8] pt-3 text-[11px] text-[#8e8e93]">
-                  Do not start, stop, or change medication based on this result. Bring it to your prescribing clinician.
+                <div className="flex items-center justify-between border-t border-[#f0ede8] pt-3">
+                  <p className="text-[11px] text-[#c7c7cc]">Source: CPIC 2022 · PMID 35034351</p>
+                  <button
+                    onClick={() => setShowSummary(true)}
+                    className="text-[11px] font-semibold text-[#007aff]"
+                  >
+                    Doctor summary ›
+                  </button>
+                </div>
+                <p className="text-[11px] text-[#8e8e93]">
+                  Do not start, stop, or change medication based on this result alone.
                 </p>
               </div>
             )}
@@ -338,6 +376,16 @@ export default function Home() {
 
             {expandedCard === "lipid" && (
               <div className="border-t border-[#f0ede8] px-4 py-4 space-y-4">
+                <div>
+                  <p className="mb-1.5 text-xs font-semibold uppercase tracking-wider text-[#8e8e93]">Data used</p>
+                  <div className="divide-y divide-[#f0ede8]">
+                    <DataUsedRow text={`ApoB: ${vals.apob} mg/dL (from blood panel · ${panelLabel})`} />
+                    <DataUsedRow text={`LDL-C: ${vals.ldl} mg/dL (from blood panel · ${panelLabel})`} />
+                    <DataUsedRow text={`hs-CRP: ${vals.hscrp} mg/L (from blood panel · ${panelLabel})`} />
+                    <DataUsedRow text="Reference: NHANES adult population ranges" />
+                  </div>
+                </div>
+
                 <p className="text-sm leading-6 text-[#3a3a3c]">
                   Your blood test is the primary signal here. ApoB and LDL-C reflect current lipid burden, while hs-CRP adds an inflammation signal. DNA context does not drive this interpretation.
                 </p>
@@ -386,19 +434,20 @@ export default function Home() {
             )}
           </article>
 
-          {/* Card 3 — Reassuring: Not currently reflected */}
+          {/* Card 3 — MTHFR: reactive to homocysteine level */}
           <article className="overflow-hidden rounded-2xl bg-white shadow-sm">
             <button
               className="flex w-full items-start gap-3 px-4 py-3.5 text-left"
               onClick={() => toggle("methyl")}
             >
-              <div className="mt-2 h-2.5 w-2.5 shrink-0 rounded-full bg-[#34c759]" />
+              <div className={`mt-2 h-2.5 w-2.5 shrink-0 rounded-full ${mthfrStatus === "monitor" ? "bg-[#ff9500]" : "bg-[#34c759]"}`} />
               <div className="flex-1">
-                <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#34c759]">
-                  Reassuring · Not currently reflected
+                <p className={`text-[11px] font-bold uppercase tracking-[0.14em] ${mthfrStatus === "monitor" ? "text-[#ff9500]" : "text-[#34c759]"}`}>
+                  {mthfrStatus === "monitor" ? "Monitor · Supported by blood" : "Reassuring · Not currently reflected"}
                 </p>
                 <h3 className="mt-0.5 text-[15px] font-semibold leading-snug">
-                  MTHFR variant · homocysteine {vals.homocysteine} µmol/L — normal
+                  MTHFR variant · homocysteine {vals.homocysteine} µmol/L —{" "}
+                  {mthfrStatus === "monitor" ? "elevated" : "normal"}
                 </h3>
               </div>
               <ChevronIcon open={expandedCard === "methyl"} />
@@ -406,19 +455,35 @@ export default function Home() {
 
             {expandedCard === "methyl" && (
               <div className="border-t border-[#f0ede8] px-4 py-4 space-y-3">
+                <div>
+                  <p className="mb-1.5 text-xs font-semibold uppercase tracking-wider text-[#8e8e93]">Data used</p>
+                  <div className="divide-y divide-[#f0ede8]">
+                    <DataUsedRow text="MTHFR variant: detected in DNA file" />
+                    <DataUsedRow text={`Homocysteine: ${vals.homocysteine} µmol/L (from blood panel · ${panelLabel})`} />
+                    {showExtraMarkers && <DataUsedRow text={`B12: ${b12} pg/mL · Folate: ${folate} ng/mL`} />}
+                  </div>
+                </div>
+
                 <p className="text-sm leading-6 text-[#3a3a3c]">
-                  An MTHFR variant appears in your DNA file. Your homocysteine ({vals.homocysteine} µmol/L) is within the normal range (5–15 µmol/L), so no active methylation concern is currently flagged.
+                  {mthfrStatus === "monitor"
+                    ? `An MTHFR variant appears in your DNA file. Your homocysteine (${vals.homocysteine} µmol/L) is above the normal range (5–15 µmol/L), which means the genetic finding is now supported by your blood result.`
+                    : `An MTHFR variant appears in your DNA file. Your homocysteine (${vals.homocysteine} µmol/L) is within the normal range (5–15 µmol/L), so no active methylation concern is currently flagged.`}
                 </p>
                 <div>
                   <p className="mb-1.5 text-xs font-semibold uppercase tracking-wider text-[#8e8e93]">Evidence trace</p>
                   <div className="divide-y divide-[#f0ede8]">
                     <EvidenceRow n={1} text="MTHFR variant identified in DNA file" />
-                    <EvidenceRow n={2} text={`Homocysteine ${vals.homocysteine} µmol/L — within normal range (5–15)`} />
+                    <EvidenceRow n={2} text={`Homocysteine ${vals.homocysteine} µmol/L — ${mthfrStatus === "monitor" ? "above normal range (>15)" : "within normal range (5–15)"}`} />
+                    {mthfrStatus === "monitor" && (
+                      <EvidenceRow n={3} text="Elevated homocysteine + MTHFR → blood result supports genetic finding" />
+                    )}
                   </div>
                 </div>
-                <p className="text-xs text-[#8e8e93]">
-                  Adding B12 or folate values here would give more context to this pathway.
-                </p>
+                {mthfrStatus === "reassuring" && (
+                  <p className="text-xs text-[#8e8e93]">
+                    Edit homocysteine above 15 µmol/L to see how the result state changes.
+                  </p>
+                )}
                 {showExtraMarkers ? (
                   <div className="space-y-2">
                     <div className="grid grid-cols-2 gap-2">
@@ -474,9 +539,11 @@ export default function Home() {
             />
             <RelRow
               label="MTHFR + homocysteine"
-              tag="Context only"
-              tagColor="text-[#34c759]"
-              desc="MTHFR variant is present in DNA, but homocysteine is normal. Blood result normalises the genetic signal here."
+              tag={mthfrStatus === "monitor" ? "Supported by blood" : "Not currently reflected"}
+              tagColor={mthfrStatus === "monitor" ? "text-[#ff9500]" : "text-[#34c759]"}
+              desc={mthfrStatus === "monitor"
+                ? `MTHFR variant present in DNA. Homocysteine is elevated (${vals.homocysteine} µmol/L) — blood result now supports the genetic finding.`
+                : `MTHFR variant present in DNA, but homocysteine is normal (${vals.homocysteine} µmol/L). Blood result normalises the genetic signal here.`}
             />
           </div>
         </div>
@@ -548,6 +615,27 @@ export default function Home() {
           )}
         </section>
 
+        {/* ── Panel comparison ──────────────────────────────────────────── */}
+        <SectionLabel>Panel comparison</SectionLabel>
+        <section className="mx-4 mb-6 overflow-hidden rounded-2xl bg-white shadow-sm">
+          <div className="px-4 pt-3 pb-1">
+            <p className="text-xs text-[#8e8e93]">{PREV_PANEL_LABEL} → {panelLabel}</p>
+          </div>
+          <div className="divide-y divide-[#f0ede8]">
+            <TrendRow label="ApoB" prev={PREV_PANEL.apob} current={vals.apob} unit="mg/dL" />
+            <TrendRow label="LDL-C" prev={PREV_PANEL.ldl} current={vals.ldl} unit="mg/dL" />
+            <TrendRow label="hs-CRP" prev={PREV_PANEL.hscrp} current={vals.hscrp} unit="mg/L" />
+          </div>
+          <div className="border-t border-[#f0ede8] px-4 py-3">
+            <button
+              onClick={uploadNewerPanel}
+              className="text-sm font-semibold text-[#007aff]"
+            >
+              {panelUploaded ? "June 2026 panel loaded ✓" : "Upload newer panel →"}
+            </button>
+          </div>
+        </section>
+
         {/* ── Questions for your clinician ──────────────────────────────── */}
         <SectionLabel>Questions for your clinician</SectionLabel>
         <section className="mx-4 mb-6 overflow-hidden rounded-2xl bg-white shadow-sm">
@@ -582,21 +670,6 @@ export default function Home() {
           </div>
         </section>
 
-        {/* ── What this does not mean ───────────────────────────────────── */}
-        <SectionLabel>What this does not mean</SectionLabel>
-        <div className="mx-4 mb-6 overflow-hidden rounded-2xl border border-[#f0dfa0] bg-[#fffbef] px-4 py-4 shadow-sm">
-          <div className="space-y-2.5">
-            <DoesNotRow text="A diagnosis of any condition" />
-            <DoesNotRow text="A reason to start, stop, or change any medication" />
-            <DoesNotRow text="Proof that your DNA causes your blood results" />
-            <DoesNotRow text="A substitute for clinical consultation" />
-            <DoesNotRow text="Evidence of disease risk for your specific situation" />
-          </div>
-          <p className="mt-3 text-[11px] text-[#9a7c00]">
-            AI is used for wording only. Medical evidence comes from CPIC and NHANES reference data.
-          </p>
-        </div>
-
         {/* ── Data controls ─────────────────────────────────────────────── */}
         <SectionLabel>Data controls</SectionLabel>
         <section className="mx-4 mb-6 overflow-hidden rounded-2xl bg-white shadow-sm">
@@ -607,19 +680,6 @@ export default function Home() {
               right={panelUploaded ? "Loaded ✓" : "›"}
               onClick={uploadNewerPanel}
             />
-            <ActionBtn
-              label="Compare with previous test"
-              right={showTrend ? "Hide" : "›"}
-              onClick={() => setShowTrend(prev => !prev)}
-            />
-            {showTrend && (
-              <div className="border-t border-[#f0ede8] px-4 py-3 text-sm text-[#3a3a3c]">
-                <p>ApoB changed from 118 to {vals.apob} mg/dL.</p>
-                <p className="mt-1 text-xs text-[#8e8e93]">
-                  {vals.apob > 118 ? "Increased since last panel." : "Improved since last panel."}
-                </p>
-              </div>
-            )}
             <ActionBtn
               label="Export PDF"
               right={exportReady ? "Ready ✓" : "›"}
@@ -643,7 +703,7 @@ export default function Home() {
 
         {/* ── Safety footer ─────────────────────────────────────────────── */}
         <p className="mb-8 px-4 text-center text-[11px] text-[#c7c7cc]">
-          HealthLens helps you prepare questions for your clinician. Not a diagnosis.
+          HealthLens helps you prepare questions for your clinician. Not a diagnosis. Do not start, stop, or change medication without clinician guidance.
         </p>
       </div>
 
@@ -676,6 +736,72 @@ function ChevronIcon({ open, light = false }: { open: boolean; light?: boolean }
     >
       <path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
+  );
+}
+
+function InputRow({
+  label,
+  value,
+  tag,
+}: {
+  label: string;
+  value: string;
+  tag?: string;
+}) {
+  return (
+    <div className="flex items-center justify-between px-4 py-3">
+      <span className="text-sm font-semibold text-[#1c1c1e]">{label}</span>
+      <div className="flex items-center gap-2 min-w-0">
+        <span className="text-right text-xs text-[#8e8e93] truncate max-w-[180px]">{value}</span>
+        {tag && (
+          <span className="shrink-0 rounded-full bg-[#34c75920] px-1.5 py-0.5 text-[10px] font-semibold text-[#1d8338]">
+            {tag}
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function TrendRow({
+  label,
+  prev,
+  current,
+  unit,
+}: {
+  label: string;
+  prev: number;
+  current: number;
+  unit: string;
+}) {
+  const delta = current - prev;
+  const improved = delta < 0;
+  const unchanged = delta === 0;
+  const color = unchanged ? "text-[#8e8e93]" : improved ? "text-[#34c759]" : "text-[#ff3b30]";
+  const arrow = unchanged ? "→" : improved ? "↓" : "↑";
+
+  return (
+    <div className="flex items-center justify-between px-4 py-3">
+      <span className="text-sm font-semibold text-[#1c1c1e]">{label}</span>
+      <div className="flex items-center gap-2">
+        <span className="text-xs text-[#8e8e93] tabular-nums">{prev}</span>
+        <span className="text-[10px] text-[#c7c7cc]">→</span>
+        <span className={`text-sm font-bold tabular-nums ${color}`}>{current}</span>
+        <span className="text-xs text-[#8e8e93]">{unit}</span>
+        <span className={`text-[11px] font-semibold tabular-nums ${color}`}>
+          {arrow} {unchanged ? "" : Math.abs(delta).toFixed(1)}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function DataUsedRow({ text }: { text: string }) {
+  return (
+    <div className="flex items-start gap-2 py-1.5">
+      <span className="mt-0.5 shrink-0 text-[10px] font-bold text-[#34c759]">✓</span>
+      <p className="text-xs leading-5 text-[#3a3a3c]">{text}</p>
+    </div>
   );
 }
 
@@ -739,15 +865,6 @@ function TraceRow({ label, value }: { label: string; value: string }) {
     <div className="flex items-start justify-between gap-3 px-4 py-3">
       <span className="shrink-0 text-sm font-semibold text-[#1c1c1e]">{label}</span>
       <span className="text-right text-xs text-[#8e8e93]">{value}</span>
-    </div>
-  );
-}
-
-function DoesNotRow({ text }: { text: string }) {
-  return (
-    <div className="flex items-start gap-2.5">
-      <span className="mt-0.5 shrink-0 text-sm text-[#c4a840]">×</span>
-      <p className="text-sm text-[#7c5a00]">{text}</p>
     </div>
   );
 }
