@@ -228,6 +228,8 @@ export default function Home() {
   const [b12, setB12] = useState("520");
   const [folate, setFolate] = useState("12.4");
   const [dataCleared, setDataCleared] = useState(false);
+  const [hfeWithGenotype, setHfeWithGenotype] = useState(false);
+  const [showHfeTrace, setShowHfeTrace] = useState(false);
 
   function commitEdit() {
     const n = parseFloat(editDraft);
@@ -584,58 +586,176 @@ export default function Home() {
         {/* ── Where DNA changes the output ─────────────────────────────── */}
         <SectionLabel>Where DNA changes the output</SectionLabel>
         <section className="mx-4 mb-6 overflow-hidden rounded-2xl bg-white shadow-sm">
-          <div className="px-4 pt-3 pb-1">
+          <div className="px-4 pt-4 pb-2">
             <p className="text-sm font-semibold text-[#1c1c1e]">Worked example: HFE genotype + elevated ferritin</p>
             <p className="mt-0.5 text-xs text-[#8e8e93]">
-              Same blood result — different question when genotype is present
+              Toggle to see how the same blood result changes when genotype is present
             </p>
           </div>
 
-          {/* Without genotype */}
-          <div className="mx-4 mt-3 rounded-xl bg-[#f5f4f0] px-3 py-3">
-            <div className="flex items-center justify-between">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-[#8e8e93]">Without genotype</p>
-              <span className="rounded-full bg-[#e5e5ea] px-2 py-0.5 text-[10px] font-semibold text-[#8e8e93]">Standard</span>
+          {/* Toggle */}
+          <div className="mx-4 mb-3 grid grid-cols-2 gap-1 rounded-xl bg-[#f5f4f0] p-1">
+            <button
+              onClick={() => setHfeWithGenotype(false)}
+              className={`rounded-lg py-2 text-xs font-semibold transition-all ${!hfeWithGenotype ? "bg-white shadow-sm text-[#1c1c1e]" : "text-[#8e8e93]"}`}
+            >
+              Blood only
+            </button>
+            <button
+              onClick={() => setHfeWithGenotype(true)}
+              className={`rounded-lg py-2 text-xs font-semibold transition-all ${hfeWithGenotype ? "bg-[#007aff] text-white shadow-sm" : "text-[#8e8e93]"}`}
+            >
+              Blood + DNA
+            </button>
+          </div>
+
+          {/* Dynamic output panel */}
+          <div className={`mx-4 mb-3 rounded-xl px-3 py-3 ${hfeWithGenotype ? "border border-[#007aff30] bg-[#007aff06]" : "bg-[#f5f4f0]"}`}>
+            <div className="mb-2 flex items-center justify-between">
+              <span className={`text-[10px] font-bold uppercase tracking-wider ${hfeWithGenotype ? "text-[#007aff]" : "text-[#8e8e93]"}`}>
+                {hfeWithGenotype ? "Clinician discussion · DNA × blood" : "Monitor · Blood-first signal"}
+              </span>
+              <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${hfeWithGenotype ? "bg-[#007aff20] text-[#0055b3]" : "bg-[#e5e5ea] text-[#8e8e93]"}`}>
+                {hfeWithGenotype ? "Genotype-aware" : "Standard"}
+              </span>
             </div>
-            <p className="mt-2 text-xs font-semibold text-[#1c1c1e]">Ferritin 420 µg/L · Transferrin saturation 58%</p>
-            <p className="mt-0.5 text-[10px] text-[#8e8e93]">Both above this demo lab&apos;s reference range</p>
-            <p className="mt-1.5 text-xs leading-5 text-[#3a3a3c]">
-              Repeat iron studies. Consider inflammation, liver markers, and metabolic context with clinician.
+
+            <p className="text-xs font-semibold text-[#1c1c1e]">
+              Ferritin 420 µg/L · TSAT 58%
+              {hfeWithGenotype && " · HFE C282Y/C282Y"}
             </p>
-          </div>
-
-          {/* Connector */}
-          <div className="flex items-center gap-2 px-6 py-2">
-            <div className="h-px flex-1 bg-[#e5e5ea]" />
-            <p className="text-[10px] font-semibold text-[#007aff]">＋ HFE genotype detected</p>
-            <div className="h-px flex-1 bg-[#e5e5ea]" />
-          </div>
-
-          {/* With HFE genotype */}
-          <div className="mx-4 mb-3 rounded-xl border border-[#007aff30] bg-[#007aff06] px-3 py-3">
-            <div className="flex items-center justify-between">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-[#007aff]">DNA × blood</p>
-              <span className="rounded-full bg-[#007aff20] px-2 py-0.5 text-[10px] font-semibold text-[#0055b3]">Genotype-aware</span>
-            </div>
-            <p className="mt-2 text-xs font-semibold text-[#1c1c1e]">Same blood markers + HFE C282Y homozygous (worked example)</p>
-            <p className="mt-1 text-xs leading-5 text-[#3a3a3c]">
-              Discuss whether an HFE-related iron overload evaluation is appropriate. HFE C282Y has incomplete penetrance — this does not diagnose iron overload.
+            <p className="mt-0.5 text-[10px] text-[#8e8e93]">
+              Both above this demo lab&apos;s reference range{hfeWithGenotype ? " · rs1800562 homozygous" : ""}
             </p>
-          </div>
 
-          <div className="divide-y divide-[#f0ede8] border-t border-[#f0ede8]">
-            <div className="px-4 py-3 space-y-1.5">
-              <p className="text-[11px] font-semibold text-[#1c1c1e]">What genotype changes</p>
-              <GenotypeDeltaRow text="Interpretation priority — a specific pathway becomes worth discussing" />
-              <GenotypeDeltaRow text="The clinician question — from broad iron workup to HFE-specific evaluation" />
-              <GenotypeDeltaRow text="Which follow-up matters most" />
-            </div>
-            <div className="px-4 py-3">
-              <p className="text-[11px] leading-5 text-[#8e8e93]">
-                DNA can change which question is worth asking next. Blood shows the current signal; DNA changes how we frame the follow-up. This does not diagnose iron overload — ferritin can be elevated for other reasons.
+            <p className="mt-2 text-xs leading-5 text-[#3a3a3c]">
+              {hfeWithGenotype
+                ? "Discuss whether an HFE-related iron overload evaluation is appropriate. HFE C282Y has incomplete penetrance — this does not diagnose iron overload. Ferritin can be elevated for other reasons."
+                : "Discuss repeat fasting iron studies and possible inflammation, liver, and metabolic context with your clinician."}
+            </p>
+
+            <div className={`mt-2 rounded-lg px-2.5 py-2 ${hfeWithGenotype ? "bg-[#007aff12]" : "bg-white/70"}`}>
+              <p className="mb-0.5 text-[10px] font-semibold uppercase tracking-wider text-[#8e8e93]">Clinician question</p>
+              <p className="text-xs leading-5 text-[#3a3a3c]">
+                {hfeWithGenotype
+                  ? "Is an HFE-related iron overload evaluation appropriate given these iron markers and HFE C282Y/C282Y?"
+                  : "These iron markers are elevated — should I repeat fasting iron studies and check for inflammation or liver involvement?"}
               </p>
             </div>
           </div>
+
+          {/* What changed — only visible in genotype state */}
+          {hfeWithGenotype && (
+            <div className="mx-4 mb-3 space-y-1.5">
+              <p className="text-[11px] font-semibold text-[#1c1c1e]">What genotype changed</p>
+              <GenotypeDeltaRow text="Interpretation priority — a specific evaluation pathway is now worth discussing" />
+              <GenotypeDeltaRow text="The clinician question — from broad iron workup to HFE-specific evaluation" />
+              <GenotypeDeltaRow text="Which uncertainty matters — iron overload vs. inflammation vs. other causes" />
+            </div>
+          )}
+
+          {/* Explanatory footer */}
+          <div className="border-t border-[#f0ede8] px-4 py-3">
+            <p className="text-[11px] leading-5 text-[#8e8e93]">
+              {hfeWithGenotype
+                ? "DNA can change which question is worth asking next. Blood shows the current signal; DNA changes how we frame the follow-up."
+                : "Without genotype context, the question is broader: rule out inflammation, liver disease, and metabolic causes before drawing conclusions."}
+            </p>
+          </div>
+
+          {/* End-to-end trace toggle */}
+          <button
+            onClick={() => setShowHfeTrace(prev => !prev)}
+            className="flex w-full items-center justify-between border-t border-[#f0ede8] px-4 py-3"
+          >
+            <span className="text-xs font-semibold text-[#007aff]">End-to-end trace</span>
+            <ChevronIcon open={showHfeTrace} />
+          </button>
+
+          {showHfeTrace && (
+            <div className="border-t border-[#f0ede8] px-4 py-4 space-y-4">
+
+              {/* Inputs */}
+              <div>
+                <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-[#8e8e93]">Inputs</p>
+                <div className="divide-y divide-[#f0ede8]">
+                  <TraceRow label="Ferritin" value="420 µg/L · above demo lab ref" />
+                  <TraceRow label="TSAT" value="58% · above demo lab ref" />
+                  <TraceRow
+                    label="HFE variant"
+                    value={hfeWithGenotype ? "rs1800562 · C282Y/C282Y · homozygous" : "Not in this scenario"}
+                  />
+                </div>
+              </div>
+
+              {/* Rules fired */}
+              <div>
+                <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-[#8e8e93]">Rules fired</p>
+                <div className="divide-y divide-[#f0ede8]">
+                  <EvidenceRow n={1} text="elevated_ferritin → ferritin above lab reference range" />
+                  <EvidenceRow n={2} text="elevated_transferrin_saturation → TSAT ≥ 45% (EASL 2022)" />
+                  {hfeWithGenotype ? (
+                    <>
+                      <EvidenceRow n={3} text="hfe_genotype_relevant → C282Y homozygous → genotype_changes_priority = true" />
+                      <EvidenceRow n={4} text="combined_iron_signal → rules 1+2+3 → priority: clinician discussion · dnaBloodStatus: supported_by_blood" />
+                    </>
+                  ) : (
+                    <EvidenceRow n={3} text="blood_only_iron_signal → no genotype context → priority: monitor · dnaBloodStatus: blood-first signal" />
+                  )}
+                </div>
+              </div>
+
+              {/* Conflict checks */}
+              <div>
+                <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-[#8e8e93]">Conflict checks</p>
+                <div className="space-y-2">
+                  <div className="rounded-lg bg-[#f5f4f0] px-3 py-2.5">
+                    <p className="text-[11px] font-semibold text-[#1c1c1e]">Ferritin is non-specific</p>
+                    <p className="mt-0.5 text-[11px] leading-[1.4] text-[#8e8e93]">
+                      Elevated CRP, liver disease, alcohol, or metabolic syndrome can raise ferritin independently. TSAT is less affected by inflammation, increasing specificity of the combined signal.
+                    </p>
+                  </div>
+                  {hfeWithGenotype && (
+                    <div className="rounded-lg bg-[#f5f4f0] px-3 py-2.5">
+                      <p className="text-[11px] font-semibold text-[#1c1c1e]">Incomplete penetrance (C282Y)</p>
+                      <p className="mt-0.5 text-[11px] leading-[1.4] text-[#8e8e93]">
+                        Most C282Y homozygotes do not develop clinical iron overload. Genotype changes the question to ask — not the diagnosis.
+                      </p>
+                    </div>
+                  )}
+                  <div className="rounded-lg bg-[#f5f4f0] px-3 py-2.5">
+                    <p className="text-[11px] font-semibold text-[#1c1c1e]">Lab reference variability</p>
+                    <p className="mt-0.5 text-[11px] leading-[1.4] text-[#8e8e93]">
+                      Ferritin and TSAT ranges vary by lab, sex, and age. Values flagged from demo lab report only — not universal thresholds.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Final output */}
+              <div>
+                <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-[#8e8e93]">Final output</p>
+                <div className="rounded-lg bg-[#f5f4f0] px-3 py-2.5 space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-semibold text-[#1c1c1e]">Priority</span>
+                    <span className="text-[11px] text-[#8e8e93]">{hfeWithGenotype ? "Clinician discussion" : "Monitor"}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-semibold text-[#1c1c1e]">DNA × blood status</span>
+                    <span className="text-[11px] text-[#8e8e93]">{hfeWithGenotype ? "Supported by blood" : "Blood-first signal"}</span>
+                  </div>
+                  <div className="flex items-start justify-between gap-2">
+                    <span className="text-[11px] font-semibold text-[#1c1c1e]">Safety boundary</span>
+                    <span className="text-right text-[11px] text-[#8e8e93]">No diagnosis · Clinician review required</span>
+                  </div>
+                </div>
+              </div>
+
+              <p className="text-[10px] text-[#c7c7cc]">
+                Sources: EASL 2022 · ClinVar pathogenic · ClinGen definitive gene-disease association
+              </p>
+            </div>
+          )}
         </section>
 
         {/* ── Current blood signals ─────────────────────────────────────── */}
