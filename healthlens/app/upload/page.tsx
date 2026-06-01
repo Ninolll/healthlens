@@ -40,7 +40,7 @@ export default function UploadPage() {
   const [medSaved, setMedSaved] = useState(true);
 
   const readyCount = (dna.state === "done" ? 1 : 0) + (blood.state === "done" ? 1 : 0) + (medSaved ? 1 : 0);
-  const allReady = readyCount === 3;
+  const allReady = dna.state === "done" && blood.state === "done";
 
   return (
     <div className="min-h-screen bg-[#f2f2f7] pb-28 text-[#1c1c1e]">
@@ -55,6 +55,7 @@ export default function UploadPage() {
             <h1 className="mt-0.5 text-[28px] font-bold leading-tight tracking-tight">
               Add your data
             </h1>
+            <p className="mt-1 text-sm text-[#3a3a3c]">Upload your DNA and blood test to see your results.</p>
           </div>
           <Link
             href="/"
@@ -139,7 +140,7 @@ export default function UploadPage() {
 
         {/* Medication */}
         <p className="mb-2 px-4 text-xs font-semibold uppercase tracking-wider text-[#8e8e93]">
-          Current medication
+          Current medication <span className="ml-1 normal-case font-normal text-[#c7c7cc]">optional</span>
         </p>
         <section className="mx-4 mb-5 overflow-hidden rounded-2xl bg-white shadow-sm">
           <div className="px-4 pt-4 pb-2">
@@ -212,7 +213,7 @@ export default function UploadPage() {
                 : "bg-[#e5e5ea] text-[#8e8e93] pointer-events-none"
             }`}
           >
-            {allReady ? "View your results →" : `${3 - readyCount} source${3 - readyCount !== 1 ? "s" : ""} remaining`}
+            {allReady ? "View your results →" : "Upload DNA and blood test to continue"}
           </Link>
           {!allReady && (
             <Link

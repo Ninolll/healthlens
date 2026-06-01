@@ -125,8 +125,8 @@ export default function PgxPage() {
   const header = statusHeader[result.status];
 
   return (
-    <div className="min-h-screen bg-[#f2f2f7] pb-24 text-[#1c1c1e]">
-      <div className="mx-auto w-full max-w-sm">
+    <div className="min-h-screen bg-[#f2f2f7] pb-28 text-[#1c1c1e]">
+      <div className="mx-auto w-full max-w-[430px]">
 
         <div className="px-4 pb-4 pt-14">
           <p className="text-xs font-semibold uppercase tracking-wider text-[#8e8e93]">
@@ -239,9 +239,16 @@ export default function PgxPage() {
               </div>
             </article>
 
+            <Link
+              href="/"
+              className="flex w-full items-center justify-center rounded-2xl bg-[#1c1c1e] py-3 text-sm font-semibold text-white"
+            >
+              View full results →
+            </Link>
+
             <button
               onClick={() => setSubmitted(false)}
-              className="w-full py-3 text-sm font-semibold text-[#007aff]"
+              className="w-full py-2.5 text-sm font-semibold text-[#007aff]"
             >
               ← New query
             </button>

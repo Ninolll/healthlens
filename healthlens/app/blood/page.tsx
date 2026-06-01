@@ -93,7 +93,7 @@ export default function BloodPage() {
           <>
             <div className="mx-4 mb-3 overflow-hidden rounded-2xl bg-white shadow-sm px-4 py-3">
               <p className="text-xs text-[#8e8e93]">
-                Results compared against population reference ranges. This is not a clinical interpretation — see your results page for the full picture.
+                Compared against population reference ranges. See your results page for the full DNA × blood picture.
               </p>
             </div>
 
@@ -132,10 +132,16 @@ export default function BloodPage() {
               </div>
             </section>
 
-            <div className="px-4 mt-4">
+            <div className="px-4 mt-4 space-y-2">
+              <Link
+                href="/"
+                className="flex w-full items-center justify-center rounded-2xl bg-[#1c1c1e] py-3 text-sm font-semibold text-white"
+              >
+                View full results →
+              </Link>
               <button
                 onClick={() => setSubmitted(false)}
-                className="w-full py-3 text-sm font-semibold text-[#007aff]"
+                className="w-full py-2.5 text-sm font-semibold text-[#007aff]"
               >
                 ← Enter different values
               </button>

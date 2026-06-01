@@ -157,9 +157,15 @@ export default function DnaPage() {
               </div>
             </article>
 
+            <Link
+              href="/"
+              className="flex w-full items-center justify-center rounded-2xl bg-[#1c1c1e] py-3 text-sm font-semibold text-white"
+            >
+              View full results →
+            </Link>
             <button
               onClick={() => setSubmitted(false)}
-              className="py-3 text-sm font-semibold text-[#007aff]"
+              className="w-full py-2.5 text-sm font-semibold text-[#007aff]"
             >
               ← Choose different diplotype
             </button>
