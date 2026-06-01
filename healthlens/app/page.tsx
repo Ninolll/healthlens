@@ -7,6 +7,7 @@ type DetailSheet = "med" | "lipid" | "methyl" | "hfe" | null;
 type MarkerKey = keyof typeof MARKERS;
 type Status = "low" | "optimal" | "borderline" | "high";
 type DefaultValues = Record<MarkerKey, number>;
+type OnboardingInput = "dna" | "blood" | "medication";
 
 // ─── marker configs ───────────────────────────────────────────────────────────
 const MARKERS = {
@@ -305,30 +306,45 @@ function DetailSheetModal({
 
 // ─── doctor summary sheet ─────────────────────────────────────────────────────
 function DoctorSummarySheet({
-  vals, panelLabel, hfeWithGenotype, checkedQuestions, onClose,
+  vals, panelLabel, hfeWithGenotype, checkedQuestions, qDiscussed, clinicianNote, reminderSet, dnaDeleted, bloodDeleted, onClose,
 }: {
   vals: DefaultValues;
   panelLabel: string;
   hfeWithGenotype: boolean;
   checkedQuestions: Array<{ id: string; text: string; tag: string }>;
+  qDiscussed: Record<string, boolean>;
+  clinicianNote: string;
+  reminderSet: boolean;
+  dnaDeleted: boolean;
+  bloodDeleted: boolean;
   onClose: () => void;
 }) {
+  const discussedQuestions = checkedQuestions.filter(q => qDiscussed[q.id]);
+
   function copyToClipboard() {
     const lines = [
       "Patient-prepared discussion summary — HealthLens prototype",
       "",
-      `Generated from: 1 DNA file (CYP2C19 *2/*2) + 1 blood panel (${panelLabel})`,
+      `Generated from: ${dnaDeleted ? "DNA file removed" : "1 DNA file (CYP2C19 *2/*2)"} + ${bloodDeleted ? "blood panel removed" : `1 blood panel (${panelLabel})`}`,
       "Medication on file: Clopidogrel",
       "",
-      "Blood markers:",
-      `  ApoB: ${vals.apob} mg/dL`,
-      `  LDL-C: ${vals.ldl} mg/dL`,
-      `  hs-CRP: ${vals.hscrp} mg/L`,
-      `  Homocysteine: ${vals.homocysteine} µmol/L`,
-      ...(hfeWithGenotype ? ["  HFE C282Y/C282Y · Ferritin 420 µg/L · TSAT 58% (worked example)"] : []),
+      ...(bloodDeleted ? ["Blood markers: blood panel removed from this prototype session"] : [
+        "Blood markers:",
+        `  ApoB: ${vals.apob} mg/dL`,
+        `  LDL-C: ${vals.ldl} mg/dL`,
+        `  hs-CRP: ${vals.hscrp} mg/L`,
+        `  Homocysteine: ${vals.homocysteine} µmol/L`,
+        ...(hfeWithGenotype ? ["  HFE C282Y/C282Y · Ferritin 420 µg/L · TSAT 58% (worked example)"] : []),
+      ]),
       "",
       "Questions to bring:",
-      ...checkedQuestions.map((q, i) => `  ${i + 1}. ${q.text}`),
+      ...(checkedQuestions.length ? checkedQuestions.map((q, i) => `  ${i + 1}. ${q.text}`) : ["  None selected"]),
+      "",
+      "Discussed during appointment:",
+      ...(discussedQuestions.length ? discussedQuestions.map((q, i) => `  ${i + 1}. ${q.text}`) : ["  None marked yet"]),
+      ...(clinicianNote.trim() ? ["", "Clinician note:", `  ${clinicianNote.trim()}`] : []),
+      "",
+      `Follow-up reminder: ${reminderSet ? "set" : "not set"}`,
       "",
       "Do not start, stop, or change medication based on this summary alone.",
     ];
@@ -348,26 +364,45 @@ function DoctorSummarySheet({
         <div className="space-y-4 text-sm text-[#3a3a3c]">
           <div>
             <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-[#8e8e93]">Generated from</p>
-            <p>1 DNA file · CYP2C19 *2/*2</p>
-            <p>1 blood panel · {panelLabel}</p>
+            <p>{dnaDeleted ? "DNA file removed from this prototype session" : "1 DNA file · CYP2C19 *2/*2"}</p>
+            <p>{bloodDeleted ? "Blood panel removed from this prototype session" : `1 blood panel · ${panelLabel}`}</p>
             <p>Medication: Clopidogrel</p>
           </div>
-          <div className="border-t border-[#e5e5ea] pt-3">
-            <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-[#8e8e93]">Medication note</p>
-            <p>CYP2C19 *2/*2 predicts substantially reduced clopidogrel activation. Please review whether current therapy is appropriate given this result.</p>
-          </div>
-          <div className="border-t border-[#e5e5ea] pt-3">
-            <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-[#8e8e93]">Blood markers</p>
-            <p>ApoB: {vals.apob} mg/dL · LDL-C: {vals.ldl} mg/dL</p>
-            <p>hs-CRP: {vals.hscrp} mg/L · Homocysteine: {vals.homocysteine} µmol/L</p>
-            {hfeWithGenotype && <p className="mt-1">HFE C282Y/C282Y · Ferritin 420 µg/L · TSAT 58% (worked example)</p>}
-          </div>
+          {!dnaDeleted && (
+            <div className="border-t border-[#e5e5ea] pt-3">
+              <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-[#8e8e93]">Medication note</p>
+              <p>CYP2C19 *2/*2 predicts substantially reduced clopidogrel activation. Please review whether current therapy is appropriate given this result.</p>
+            </div>
+          )}
+          {!bloodDeleted && (
+            <div className="border-t border-[#e5e5ea] pt-3">
+              <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-[#8e8e93]">Blood markers</p>
+              <p>ApoB: {vals.apob} mg/dL · LDL-C: {vals.ldl} mg/dL</p>
+              <p>hs-CRP: {vals.hscrp} mg/L · Homocysteine: {vals.homocysteine} µmol/L</p>
+              {hfeWithGenotype && <p className="mt-1">HFE C282Y/C282Y · Ferritin 420 µg/L · TSAT 58% (worked example)</p>}
+            </div>
+          )}
           {checkedQuestions.length > 0 && (
             <div className="border-t border-[#e5e5ea] pt-3">
               <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-[#8e8e93]">Questions to bring</p>
               {checkedQuestions.map((q, i) => (
                 <p key={q.id} className="mt-1 leading-5">{i + 1}. {q.text}</p>
               ))}
+            </div>
+          )}
+          {discussedQuestions.length > 0 && (
+            <div className="border-t border-[#e5e5ea] pt-3">
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-[#8e8e93]">Discussed during appointment</p>
+              {discussedQuestions.map((q, i) => (
+                <p key={q.id} className="mt-1 leading-5">✓ {i + 1}. {q.text}</p>
+              ))}
+            </div>
+          )}
+          {(clinicianNote.trim() || reminderSet) && (
+            <div className="border-t border-[#e5e5ea] pt-3">
+              <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-[#8e8e93]">Follow-up</p>
+              {clinicianNote.trim() && <p className="leading-5">Clinician note: {clinicianNote.trim()}</p>}
+              <p className="mt-1 text-xs text-[#8e8e93]">Retest reminder: {reminderSet ? "set ✓" : "not set"}</p>
             </div>
           )}
           <div className="border-t border-[#e5e5ea] pt-3">
@@ -410,6 +445,16 @@ export default function Home() {
   const [qChecked, setQChecked] = useState<Record<string, boolean>>({
     q1: true, q2: true, q3: false, q4: false, q5: false, q6: false,
   });
+  const [consentAccepted, setConsentAccepted] = useState(false);
+  const [hasDemoData, setHasDemoData]         = useState(false);
+  const [demoInputs, setDemoInputs] = useState<Record<OnboardingInput, boolean>>({
+    dna: false,
+    blood: false,
+    medication: false,
+  });
+  const [qDiscussed, setQDiscussed]           = useState<Record<string, boolean>>({});
+  const [clinicianNote, setClinicianNote]     = useState("");
+  const [reminderSet, setReminderSet]         = useState(false);
 
   /* ── URL param: open summary on ?summary=1 ── */
   useEffect(() => {
@@ -434,6 +479,43 @@ export default function Home() {
     setVals({ apob: 112, ldl: 138, hscrp: 2.2, homocysteine: 8.1 });
     setPanelLabel("June 2026");
     setPanelUploaded(true);
+    setBloodDeleted(false);
+  }
+
+  function resetDemoSession() {
+    setVals(DEFAULT_VALUES);
+    setPanelLabel("May 2026");
+    setPanelUploaded(false);
+    setB12("520");
+    setFolate("12.4");
+    setShowExtraMarkers(false);
+    setHfeWithGenotype(false);
+    setShowHfeTrace(false);
+    setActiveChip("All");
+    setOpenEvidence(null);
+    setQChecked({ q1: true, q2: true, q3: false, q4: false, q5: false, q6: false });
+    setQDiscussed({});
+    setClinicianNote("");
+    setReminderSet(false);
+    setDnaDeleted(true);
+    setBloodDeleted(true);
+    setDataCleared(true);
+    setHasDemoData(false);
+    setDemoInputs({ dna: false, blood: false, medication: false });
+    setActiveTab("results");
+    setDetailSheet(null);
+    setShowSummary(false);
+  }
+
+  function loadDemoData() {
+    setVals(DEFAULT_VALUES);
+    setPanelLabel("May 2026");
+    setPanelUploaded(false);
+    setDnaDeleted(false);
+    setBloodDeleted(false);
+    setDataCleared(false);
+    setHasDemoData(true);
+    setActiveTab("results");
   }
 
   /* ── computed ── */
@@ -441,6 +523,11 @@ export default function Home() {
     vals.homocysteine >= MARKERS.homocysteine.optimalBelow ? "monitor" : "reassuring";
   const lipidSev  = lipidSeverity(vals);
   const nonOptimalCount = (["apob", "ldl", "hscrp"] as MarkerKey[]).filter(k => getStatus(k, vals[k]) !== "optimal").length;
+  const dnaReady = !dnaDeleted;
+  const bloodReady = !bloodDeleted;
+  const medicationReady = true;
+  const readySourceCount = [dnaReady, bloodReady, medicationReady].filter(Boolean).length;
+  const onboardingComplete = demoInputs.dna && demoInputs.blood && demoInputs.medication;
 
   /* ── questions list (depends on state, computed inline) ── */
   const questions = [
@@ -461,7 +548,13 @@ export default function Home() {
   const checkedQuestions = questions.filter(q => qChecked[q.id]);
 
   function toggleQuestion(id: string) {
-    setQChecked(prev => ({ ...prev, [id]: !prev[id] }));
+    setQChecked(prev => {
+      const nextChecked = !prev[id];
+      if (!nextChecked) {
+        setQDiscussed(prevDiscussed => ({ ...prevDiscussed, [id]: false }));
+      }
+      return { ...prev, [id]: nextChecked };
+    });
   }
 
   function addCardToSummary(cardId: string) {
@@ -483,7 +576,17 @@ export default function Home() {
   const CHIPS = ["All", "Important", "Monitor", "Reassuring", "Blood-first", "DNA-driven", "Iron"];
 
   function shouldShowCard(card: DetailSheet) {
-    if (!card || activeChip === "All") return true;
+    if (!card) return false;
+
+    const sourceAvailable =
+      card === "med" ? dnaReady
+      : card === "lipid" ? bloodReady
+      : card === "methyl" ? dnaReady && bloodReady
+      : card === "hfe" ? bloodReady && (!hfeWithGenotype || dnaReady)
+      : false;
+
+    if (!sourceAvailable) return false;
+    if (activeChip === "All") return true;
     if (activeChip === "Important") return card === "med" || (card === "hfe" && hfeWithGenotype);
     if (activeChip === "Monitor") return card === "lipid" || (card === "methyl" && mthfrStatus === "monitor") || (card === "hfe" && !hfeWithGenotype);
     if (activeChip === "Reassuring") return card === "methyl" && mthfrStatus === "reassuring";
@@ -543,6 +646,10 @@ export default function Home() {
               </p>
             ))}
           </div>
+        </div>
+        <div className="rounded-xl bg-[#f5f4f0] px-3 py-3">
+          <p className="text-xs font-semibold text-[#8e8e93]">What would change this result</p>
+          <p className="mt-1 text-xs leading-5 text-[#3a3a3c]">Medication context or a clinician decision could change the next steps from this finding.</p>
         </div>
         <div className="rounded-xl bg-[#f5f4f0] px-3 py-3">
           <p className="text-xs font-semibold text-[#8e8e93]">Limit</p>
@@ -619,6 +726,10 @@ export default function Home() {
             ))}
           </div>
         </div>
+        <div className="rounded-xl bg-[#f5f4f0] px-3 py-3">
+          <p className="text-xs font-semibold text-[#8e8e93]">What would change this result</p>
+          <p className="mt-1 text-xs leading-5 text-[#3a3a3c]">A future panel trend showing improvement could move this from Monitor to a lower priority.</p>
+        </div>
         <p className="text-[11px] text-[#c7c7cc]">Reference: NHANES adult population ranges · lab panel {panelLabel}</p>
       </DetailSheetModal>
     );
@@ -682,6 +793,14 @@ export default function Home() {
               </p>
             ))}
           </div>
+        </div>
+        <div className="rounded-xl bg-[#f5f4f0] px-3 py-3">
+          <p className="text-xs font-semibold text-[#8e8e93]">What would change this result</p>
+          <p className="mt-1 text-xs leading-5 text-[#3a3a3c]">
+            {mthfrStatus === "reassuring"
+              ? "Homocysteine above 15 µmol/L would move this from Reassuring to Monitor."
+              : "Homocysteine returning to the normal range would move this back to Reassuring."}
+          </p>
         </div>
         <p className="text-[11px] text-[#c7c7cc]">Context only · MTHFR clinical utility varies · consult clinician</p>
       </DetailSheetModal>
@@ -766,6 +885,14 @@ export default function Home() {
             </div>
           )}
         </div>
+        <div className="rounded-xl bg-[#f5f4f0] px-3 py-3">
+          <p className="text-xs font-semibold text-[#8e8e93]">What would change this result</p>
+          <p className="mt-1 text-xs leading-5 text-[#3a3a3c]">
+            {hfeWithGenotype
+              ? "Removing genotype context would revert this to a blood-first monitoring signal."
+              : "Adding HFE C282Y/C282Y genotype changes output from blood-first monitoring to a DNA × blood clinician discussion."}
+          </p>
+        </div>
         <p className="text-[11px] text-[#c7c7cc]">This is a worked example. HFE data in this prototype is for demonstration only.</p>
       </DetailSheetModal>
     );
@@ -780,29 +907,58 @@ export default function Home() {
       <div className="pb-28">
         {/* Header */}
         <header className="px-4 pb-4 pt-14">
-          <p className="text-xs font-semibold uppercase tracking-wider text-[#8e8e93]">HealthLens</p>
+          <p className="text-xs font-semibold uppercase tracking-wider text-[#8e8e93]">Today</p>
           <h1 className="mt-0.5 text-[26px] font-bold leading-tight tracking-tight">Your {panelLabel} check</h1>
-          <p className="mt-1 text-sm text-[#3a3a3c]">DNA + blood results ready</p>
+          <p className="mt-1 text-sm text-[#3a3a3c]">
+            {readySourceCount === 3 ? "DNA + blood results ready" : `${readySourceCount}/3 data sources ready`}
+          </p>
         </header>
 
-        {/* Snapshot card */}
-        <div className="mx-4 mb-5 grid grid-cols-4 overflow-hidden rounded-2xl bg-white shadow-sm">
-          <div className="px-3 py-3 text-center">
-            <p className="text-[22px] font-bold leading-none text-[#ff3b30]">1</p>
-            <p className="mt-1 text-[10px] font-semibold text-[#1c1c1e]">Discuss</p>
+        {/* Summary card */}
+        <div className="mx-4 mb-4 overflow-hidden rounded-2xl bg-white shadow-sm">
+          <div className="flex items-center justify-between px-4 py-3">
+            <span className="text-sm font-semibold text-[#1c1c1e]">{dnaReady ? "1 result to discuss with your clinician" : "DNA findings unavailable"}</span>
+            <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${dnaReady ? "bg-[#ff3b3020] text-[#d32f2f]" : "bg-[#f0ede8] text-[#8e8e93]"}`}>{dnaReady ? "Discuss" : "Missing"}</span>
           </div>
-          <div className="border-l border-[#f0ede8] px-3 py-3 text-center">
-            <p className="text-[22px] font-bold leading-none text-[#ff9500]">{nonOptimalCount}</p>
-            <p className="mt-1 text-[10px] font-semibold text-[#1c1c1e]">Monitor</p>
+          <div className="flex items-center justify-between border-t border-[#f0ede8] px-4 py-3">
+            <span className="text-sm text-[#3a3a3c]">{bloodReady ? `${nonOptimalCount} marker${nonOptimalCount !== 1 ? "s" : ""} above optimal range` : "Blood marker status unavailable"}</span>
+            <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${bloodReady ? "bg-[#ff950020] text-[#b36200]" : "bg-[#f0ede8] text-[#8e8e93]"}`}>{bloodReady ? "Monitor" : "Missing"}</span>
           </div>
-          <div className="border-l border-[#f0ede8] px-3 py-3 text-center">
-            <p className={`text-[22px] font-bold leading-none ${mthfrStatus === "monitor" ? "text-[#ff9500]" : "text-[#34c759]"}`}>1</p>
-            <p className="mt-1 text-[10px] font-semibold text-[#1c1c1e]">{mthfrStatus === "monitor" ? "Watch" : "OK"}</p>
+          <div className="flex items-center justify-between border-t border-[#f0ede8] px-4 py-3">
+            <span className="text-sm text-[#3a3a3c]">{dnaReady && bloodReady ? `${mthfrStatus === "reassuring" ? "1 result" : "0 results"} currently reassuring` : "Combined DNA × blood check unavailable"}</span>
+            <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${dnaReady && bloodReady && mthfrStatus === "reassuring" ? "bg-[#34c75920] text-[#1d8338]" : "bg-[#f0ede8] text-[#8e8e93]"}`}>
+              {dnaReady && bloodReady ? (mthfrStatus === "reassuring" ? "OK" : "None") : "Missing"}
+            </span>
           </div>
-          <div className="border-l border-[#f0ede8] px-3 py-3 text-center">
-            <p className="text-[22px] font-bold leading-none text-[#007aff]">1</p>
-            <p className="mt-1 text-[10px] font-semibold text-[#1c1c1e]">Context</p>
+          <div className="flex items-center justify-between border-t border-[#f0ede8] px-4 py-3">
+            <span className="text-xs text-[#8e8e93]">
+              Data: {dnaReady ? "DNA" : "DNA missing"} · {bloodReady ? "blood panel" : "blood missing"} · medication
+            </span>
+            <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${readySourceCount === 3 ? "bg-[#007aff15] text-[#0055b3]" : "bg-[#ff950020] text-[#b36200]"}`}>{readySourceCount}/3 ready</span>
           </div>
+        </div>
+
+        {readySourceCount < 3 && (
+          <div className="mx-4 mb-5 rounded-2xl bg-white px-4 py-4 shadow-sm">
+            <p className="text-sm font-semibold text-[#1c1c1e]">Some results are hidden until data is restored</p>
+            <p className="mt-1 text-xs leading-5 text-[#8e8e93]">
+              {dnaReady ? "DNA file ready." : "DNA-dependent medication and methylation cards are hidden."} {bloodReady ? "Blood panel ready." : "Blood-dependent lipid, methylation, and iron cards are hidden."}
+            </p>
+            <button onClick={() => setActiveTab("data")} className="mt-3 text-sm font-semibold text-[#007aff]">Manage data →</button>
+          </div>
+        )}
+
+        {/* Next best action */}
+        <div className="mx-4 mb-5 overflow-hidden rounded-2xl bg-[#1c1c1e] px-4 py-4 shadow-sm">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-white/50">Next best action</p>
+          <p className="mt-1 text-[15px] font-bold text-white">Prepare your clinician questions</p>
+          <p className="mt-0.5 text-xs text-white/60">{checkedQuestions.length} question{checkedQuestions.length !== 1 ? "s" : ""} selected · review before your appointment</p>
+          <button
+            onClick={() => setActiveTab("questions")}
+            className="mt-3 rounded-xl bg-white px-4 py-2 text-xs font-bold text-[#1c1c1e]"
+          >
+            Go to Doctor prep →
+          </button>
         </div>
 
         {/* Category chips */}
@@ -902,14 +1058,22 @@ export default function Home() {
           >
             <div className="grid grid-cols-2 gap-1">
               <button onClick={() => setHfeWithGenotype(false)} className={`rounded-lg py-1.5 text-[11px] font-semibold transition-all ${!hfeWithGenotype ? "bg-[#1c1c1e] text-white" : "bg-[#f5f4f0] text-[#8e8e93]"}`}>Blood only</button>
-              <button onClick={() => setHfeWithGenotype(true)}  className={`rounded-lg py-1.5 text-[11px] font-semibold transition-all ${hfeWithGenotype ? "bg-[#007aff] text-white" : "bg-[#f5f4f0] text-[#8e8e93]"}`}>Blood + DNA</button>
+              <button
+                onClick={() => dnaReady && setHfeWithGenotype(true)}
+                disabled={!dnaReady}
+                className={`rounded-lg py-1.5 text-[11px] font-semibold transition-all ${hfeWithGenotype ? "bg-[#007aff] text-white" : !dnaReady ? "bg-[#f5f4f0] text-[#c7c7cc]" : "bg-[#f5f4f0] text-[#8e8e93]"}`}
+              >
+                {dnaReady ? "Blood + DNA" : "DNA missing"}
+              </button>
             </div>
           </ResultCard>}
 
           {!["med", "lipid", "methyl", "hfe"].some(card => shouldShowCard(card as DetailSheet)) && (
             <div className="rounded-2xl bg-white px-4 py-5 text-center shadow-sm">
-              <p className="text-sm font-semibold text-[#1c1c1e]">No results in this filter</p>
-              <p className="mt-1 text-xs text-[#8e8e93]">Try All or another category chip.</p>
+              <p className="text-sm font-semibold text-[#1c1c1e]">{readySourceCount < 3 ? "No available results with current data" : "No results in this filter"}</p>
+              <p className="mt-1 text-xs text-[#8e8e93]">
+                {readySourceCount < 3 ? "Restore missing data in the Data tab, or switch to a broader filter." : "Try All or another category chip."}
+              </p>
             </div>
           )}
         </div>
@@ -936,8 +1100,8 @@ export default function Home() {
           {dnaDeleted ? (
             <div className="px-4 py-4">
               <p className="text-sm font-semibold text-[#1c1c1e]">DNA file removed</p>
-              <p className="mt-1 text-xs leading-5 text-[#8e8e93]">Results stay visible as a prototype snapshot. Restore the demo file to show coverage rows again.</p>
-              <button onClick={() => setDnaDeleted(false)} className="mt-3 text-sm font-semibold text-[#007aff]">Restore demo DNA file</button>
+              <p className="mt-1 text-xs leading-5 text-[#8e8e93]">DNA-dependent result cards are hidden until the demo file is restored.</p>
+              <button onClick={() => { setDnaDeleted(false); setDataCleared(false); }} className="mt-3 text-sm font-semibold text-[#007aff]">Restore demo DNA file</button>
             </div>
           ) : (
             <div className="divide-y divide-[#f0ede8]">
@@ -974,7 +1138,7 @@ export default function Home() {
             <div className="px-4 py-4">
               <p className="text-sm font-semibold text-[#1c1c1e]">Blood panel removed</p>
               <p className="mt-1 text-xs leading-5 text-[#8e8e93]">Restore the demo panel to edit marker values and compare trends again.</p>
-              <button onClick={() => setBloodDeleted(false)} className="mt-3 text-sm font-semibold text-[#007aff]">Restore demo blood panel</button>
+              <button onClick={() => { setBloodDeleted(false); setDataCleared(false); }} className="mt-3 text-sm font-semibold text-[#007aff]">Restore demo blood panel</button>
             </div>
           ) : (
             <div className="divide-y divide-[#f0ede8]">
@@ -1114,10 +1278,13 @@ export default function Home() {
       <div className="pb-28">
         <header className="px-4 pb-4 pt-14">
           <p className="text-xs font-semibold uppercase tracking-wider text-[#8e8e93]">HealthLens</p>
-          <h1 className="mt-0.5 text-[26px] font-bold leading-tight tracking-tight">Questions to bring</h1>
-          <p className="mt-1 text-sm text-[#3a3a3c]">{checkedQuestions.length} of {questions.length} selected for your summary</p>
+          <h1 className="mt-0.5 text-[26px] font-bold leading-tight tracking-tight">Doctor prep</h1>
+          <p className="mt-1 text-sm text-[#3a3a3c]">{checkedQuestions.length} of {questions.length} questions selected</p>
         </header>
 
+        {/* Before */}
+        <SectionLabel>Before your appointment</SectionLabel>
+        <p className="mb-3 px-4 text-xs text-[#8e8e93]">Select which questions to bring</p>
         {groups.map(({ tag, qs }) => (
           <div key={tag} className="mb-4">
             <SectionLabel>{tag}</SectionLabel>
@@ -1143,6 +1310,62 @@ export default function Home() {
           </div>
         ))}
 
+        {/* During */}
+        <SectionLabel>During your appointment</SectionLabel>
+        {checkedQuestions.length === 0 ? (
+          <div className="mx-4 mb-4 rounded-2xl bg-white px-4 py-4 text-center shadow-sm">
+            <p className="text-xs text-[#8e8e93]">Select questions above to track during your appointment</p>
+          </div>
+        ) : (
+          <section className="mx-4 mb-4 overflow-hidden rounded-2xl bg-white shadow-sm">
+            <div className="divide-y divide-[#f0ede8]">
+              {checkedQuestions.map(q => (
+                <div key={q.id} className="flex items-start gap-3 px-4 py-3">
+                  <div className="flex-1 min-w-0">
+                    <p className={`text-sm leading-5 ${qDiscussed[q.id] ? "line-through text-[#c7c7cc]" : "text-[#1c1c1e]"}`}>{q.text}</p>
+                  </div>
+                  <button
+                    onClick={() => setQDiscussed(prev => ({ ...prev, [q.id]: !prev[q.id] }))}
+                    className={`shrink-0 rounded-xl px-3 py-1.5 text-[11px] font-semibold transition-colors ${
+                      qDiscussed[q.id] ? "bg-[#34c75920] text-[#1d8338]" : "bg-[#f5f4f0] text-[#3a3a3c]"
+                    }`}
+                  >
+                    {qDiscussed[q.id] ? "Discussed ✓" : "Mark discussed"}
+                  </button>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* After */}
+        <SectionLabel>After your appointment</SectionLabel>
+        <section className="mx-4 mb-4 overflow-hidden rounded-2xl bg-white shadow-sm">
+          <div className="px-4 pt-4 pb-2">
+            <p className="text-sm font-semibold text-[#1c1c1e]">Clinician note</p>
+            <p className="mt-0.5 text-xs text-[#8e8e93]">Record what your clinician recommended</p>
+          </div>
+          <div className="border-t border-[#f0ede8] px-4 py-3">
+            <textarea
+              value={clinicianNote}
+              onChange={e => setClinicianNote(e.target.value)}
+              placeholder="e.g. Order repeat lipid panel in 3 months, continue current medication..."
+              rows={3}
+              className="w-full resize-none bg-transparent text-sm text-[#1c1c1e] placeholder:text-[#c7c7cc] focus:outline-none"
+            />
+          </div>
+          <div className="border-t border-[#f0ede8] px-4 py-3">
+            <button
+              onClick={() => setReminderSet(true)}
+              className={`w-full rounded-xl py-2.5 text-sm font-semibold transition-colors ${
+                reminderSet ? "bg-[#34c75920] text-[#1d8338]" : "bg-[#f5f4f0] text-[#1c1c1e]"
+              }`}
+            >
+              {reminderSet ? "Reminder set ✓" : "Set retest reminder"}
+            </button>
+          </div>
+        </section>
+
         <div className="mx-4 grid grid-cols-2 gap-2">
           <button
             onClick={() => setShowSummary(true)}
@@ -1152,10 +1375,20 @@ export default function Home() {
           </button>
           <button
             onClick={() => {
+              const discussedQuestions = checkedQuestions.filter(q => qDiscussed[q.id]);
               const lines = [
                 "Patient-prepared discussion summary",
                 "",
-                ...checkedQuestions.map((q, i) => `${i + 1}. ${q.text}`),
+                `Data sources: ${dnaReady ? "DNA ready" : "DNA missing"} · ${bloodReady ? "blood panel ready" : "blood panel missing"} · medication ready`,
+                "",
+                "Questions to bring:",
+                ...(checkedQuestions.length ? checkedQuestions.map((q, i) => `${i + 1}. ${q.text}`) : ["None selected"]),
+                "",
+                "Discussed during appointment:",
+                ...(discussedQuestions.length ? discussedQuestions.map((q, i) => `${i + 1}. ${q.text}`) : ["None marked yet"]),
+                ...(clinicianNote.trim() ? ["", "Clinician note:", clinicianNote.trim()] : []),
+                "",
+                `Retest reminder: ${reminderSet ? "set" : "not set"}`,
                 "",
                 "Do not start, stop, or change medication based on this summary alone.",
               ];
@@ -1167,7 +1400,7 @@ export default function Home() {
           </button>
         </div>
         <p className="mt-3 px-4 text-center text-[11px] text-[#c7c7cc]">
-          Tap a card result card&apos;s &quot;Add to summary&quot; to pre-select its questions
+          Tap a result card&apos;s &quot;Add to summary&quot; to pre-select its questions
         </p>
       </div>
     );
@@ -1335,7 +1568,18 @@ export default function Home() {
                 <p className="text-xs text-[#8e8e93]">{dnaDeleted ? "Deleted from this prototype session" : "23andMe raw data · demo"}</p>
               </div>
               <button
-                onClick={() => setDnaDeleted(prev => !prev)}
+                onClick={() => {
+                  setDnaDeleted(prev => {
+                    const next = !prev;
+                    if (next) {
+                      setHfeWithGenotype(false);
+                      setQChecked(prevChecked => ({ ...prevChecked, q1: false, q2: false, q5: false }));
+                      setQDiscussed(prevDiscussed => ({ ...prevDiscussed, q1: false, q2: false, q5: false }));
+                    }
+                    return next;
+                  });
+                  setDataCleared(false);
+                }}
                 className={`text-xs font-semibold ${dnaDeleted ? "text-[#007aff]" : "text-[#ff3b30]"}`}
               >
                 {dnaDeleted ? "Restore" : "Delete"}
@@ -1347,28 +1591,29 @@ export default function Home() {
                 <p className="text-xs text-[#8e8e93]">{bloodDeleted ? "Deleted from this prototype session" : `${panelLabel} · 6 markers`}</p>
               </div>
               <button
-                onClick={() => setBloodDeleted(prev => !prev)}
+                onClick={() => {
+                  setBloodDeleted(prev => {
+                    const next = !prev;
+                    if (next) {
+                      setQChecked(prevChecked => ({ ...prevChecked, q3: false, q4: false, q6: false }));
+                      setQDiscussed(prevDiscussed => ({ ...prevDiscussed, q3: false, q4: false, q6: false }));
+                    }
+                    return next;
+                  });
+                  setDataCleared(false);
+                }}
                 className={`text-xs font-semibold ${bloodDeleted ? "text-[#007aff]" : "text-[#ff3b30]"}`}
               >
                 {bloodDeleted ? "Restore" : "Delete"}
               </button>
             </div>
             <button
-              onClick={() => {
-                setVals(DEFAULT_VALUES);
-                setPanelLabel("May 2026");
-                setPanelUploaded(false);
-                setHfeWithGenotype(false);
-                setQChecked({ q1: true, q2: true, q3: false, q4: false, q5: false, q6: false });
-                setDataCleared(true);
-                setDnaDeleted(true);
-                setBloodDeleted(true);
-              }}
+              onClick={resetDemoSession}
               className="flex w-full items-center justify-between px-4 py-3.5"
             >
               <span className="text-sm font-semibold text-[#1c1c1e]">Clear all demo data</span>
               <span className={`text-xs font-semibold ${dataCleared ? "text-[#34c759]" : "text-[#ff9500]"}`}>
-                {dataCleared ? "Cleared ✓" : "Reset →"}
+                {dataCleared ? "Cleared ✓" : "Return to empty state →"}
               </span>
             </button>
           </div>
@@ -1396,6 +1641,88 @@ export default function Home() {
   }
 
   /* ═══════════════════════════ RENDER ════════════════════════════════════ */
+
+  if (!consentAccepted) {
+    return (
+      <main className="min-h-screen bg-[#f5f4f0] flex flex-col items-center justify-center px-6 text-[#1c1c1e]">
+        <div className="w-full max-w-[430px]">
+          <div className="mb-8 text-center">
+            <p className="text-[38px] font-bold tracking-tight">HealthLens</p>
+            <p className="mt-2 text-base text-[#3a3a3c]">Understand your health data — DNA and blood together</p>
+          </div>
+          <div className="mb-8 space-y-3">
+            {[
+              "Combines genetic variants with your blood marker values",
+              "Flags relevant drug-gene interactions using published guidelines",
+              "Prepares you for an informed conversation with your clinician",
+            ].map((text, i) => (
+              <div key={i} className="flex items-start gap-3">
+                <span className="mt-0.5 shrink-0 text-sm font-bold text-[#007aff]">✓</span>
+                <p className="text-sm leading-5 text-[#3a3a3c]">{text}</p>
+              </div>
+            ))}
+          </div>
+          <div className="mb-5 rounded-2xl bg-white px-4 py-3 shadow-sm">
+            <p className="text-xs leading-5 text-[#8e8e93]">Prototype only — all data stays in your browser session. Nothing is sent to external servers. This is not a medical diagnosis.</p>
+          </div>
+          <button
+            onClick={() => setConsentAccepted(true)}
+            className="w-full rounded-2xl bg-[#1c1c1e] py-4 text-sm font-bold text-white"
+          >
+            Continue
+          </button>
+        </div>
+      </main>
+    );
+  }
+
+  if (!hasDemoData) {
+    return (
+      <main className="min-h-screen bg-[#f5f4f0] pb-10 text-[#1c1c1e]">
+        <div className="mx-auto w-full max-w-[430px]">
+          <header className="px-4 pb-4 pt-14">
+            <p className="text-xs font-semibold uppercase tracking-wider text-[#8e8e93]">HealthLens</p>
+            <h1 className="mt-0.5 text-[26px] font-bold leading-tight tracking-tight">Your health data</h1>
+            <p className="mt-1 text-sm text-[#3a3a3c]">Add your files to get started</p>
+          </header>
+          <div className="flex flex-col gap-3 px-4 mb-6">
+            {[
+              { key: "dna" as OnboardingInput, icon: "🧬", title: "Add DNA file",          sub: "23andMe · AncestryDNA · raw VCF" },
+              { key: "blood" as OnboardingInput, icon: "🩸", title: "Add blood panel",        sub: "Lab report PDF · CSV · image" },
+              { key: "medication" as OnboardingInput, icon: "💊", title: "Add medication context", sub: "Current prescriptions" },
+            ].map(row => {
+              const added = demoInputs[row.key];
+              return (
+                <button
+                  key={row.title}
+                  onClick={() => setDemoInputs(prev => ({ ...prev, [row.key]: true }))}
+                  className={`flex w-full items-center gap-3 rounded-2xl px-4 py-4 text-left shadow-sm transition-colors ${added ? "bg-[#34c75915]" : "bg-white"}`}
+                >
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#f5f4f0] text-xl">{row.icon}</div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-[#1c1c1e]">{added ? row.title.replace("Add", "Added") : row.title}</p>
+                    <p className="text-xs text-[#8e8e93]">{added ? "Ready for demo results" : row.sub}</p>
+                  </div>
+                  <span className={`shrink-0 text-xs font-semibold ${added ? "text-[#1d8338]" : "text-[#c7c7cc]"}`}>{added ? "Added ✓" : "Tap"}</span>
+                </button>
+              );
+            })}
+          </div>
+          <div className="px-4">
+            <button
+              onClick={loadDemoData}
+              disabled={!onboardingComplete}
+              className={`w-full rounded-2xl py-4 text-sm font-bold text-white transition-colors ${onboardingComplete ? "bg-[#007aff]" : "bg-[#c7c7cc]"}`}
+            >
+              {onboardingComplete ? "Generate demo results" : "Add all demo inputs first"}
+            </button>
+            <p className="mt-2 text-center text-xs text-[#8e8e93]">Tap each demo input to simulate a real first-use setup.</p>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
   return (
     <main className="min-h-screen bg-[#f5f4f0] text-[#1c1c1e]">
       {showSummary && (
@@ -1404,6 +1731,11 @@ export default function Home() {
           panelLabel={panelLabel}
           hfeWithGenotype={hfeWithGenotype}
           checkedQuestions={checkedQuestions}
+          qDiscussed={qDiscussed}
+          clinicianNote={clinicianNote}
+          reminderSet={reminderSet}
+          dnaDeleted={dnaDeleted}
+          bloodDeleted={bloodDeleted}
           onClose={() => setShowSummary(false)}
         />
       )}
@@ -1424,7 +1756,7 @@ export default function Home() {
             [
               { id: "results",   icon: "✦", label: "Results"   },
               { id: "inputs",    icon: "＋", label: "Inputs"    },
-              { id: "questions", icon: "?", label: "Questions" },
+              { id: "questions", icon: "?", label: "Prep" },
               { id: "evidence",  icon: "≡", label: "Evidence"  },
               { id: "data",      icon: "◎", label: "Data"      },
             ] as { id: Tab; icon: string; label: string }[]
