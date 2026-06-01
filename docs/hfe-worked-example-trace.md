@@ -37,9 +37,9 @@ HFE genotype genuinely changes:
 
 ## Biomarker-Only Output (no genotype)
 
-**Input blood markers:**
-- Ferritin: 280 µg/L (above upper normal ~200 µg/L for adult males; reference range varies by lab)
-- Transferrin saturation: 48% (elevated; reference range typically 20–50%, saturation ≥45–50% warrants follow-up)
+**Input blood markers (demo persona):**
+- Ferritin: 420 µg/L (above this demo lab's reference range; ferritin ranges vary by laboratory and sex — do not apply these numbers to a real patient without checking the specific lab report)
+- Transferrin saturation: 58% (above this demo lab's reference range; fasting TSAT ≥45% is a commonly used threshold for further evaluation per EASL, but lab-reported ranges vary)
 
 **Standard output:**
 
@@ -52,11 +52,12 @@ HFE genotype genuinely changes:
 ## Genotype-Aware Output (with HFE variant)
 
 **Same blood markers as above, plus:**
-- HFE genotype: C282Y homozygous (the most common variant associated with hereditary hemochromatosis in Northern European populations; OMIM: 235200)
+- HFE genotype: C282Y homozygous (HFE C282Y/C282Y; the highest-penetrance HFE genotype associated with hereditary hemochromatosis in populations of Northern European ancestry; OMIM: 235200; ClinGen: definitive gene-disease association)
+- Note: C282Y has incomplete penetrance — most C282Y homozygotes do not develop clinical iron overload. The genotype changes the question, not the diagnosis.
 
 **Genotype-aware output:**
 
-> Your ferritin and transferrin saturation are elevated, and an HFE variant is present in your genetic data. This combination changes the question worth asking at your next clinical visit: discuss whether an HFE-related iron overload evaluation is appropriate. This does not diagnose iron overload — ferritin can be elevated for other reasons, and clinical confirmation is required.
+> Your ferritin and transferrin saturation are both above your lab's reference range, and an HFE C282Y homozygous result is present in your genetic data. This combination changes the question worth asking at your next clinical visit: discuss whether an HFE-related iron overload evaluation is appropriate. This does not diagnose iron overload — ferritin can be elevated for other reasons, and clinical confirmation is required. HFE C282Y has incomplete penetrance.
 
 **What is different:**
 - The output now frames a *specific* diagnostic pathway to consider, not just "repeat labs broadly".
@@ -94,8 +95,8 @@ DNA:
   - Variant: rs1800562 (C282Y) — homozygous
 
 Blood:
-  - Ferritin: 280 µg/L
-  - Transferrin saturation: 48%
+  - Ferritin: 420 µg/L (above demo lab reference range)
+  - Transferrin saturation: 58% (above demo lab reference range)
 
 Optional context (if available):
   - hs-CRP / CRP (helps distinguish iron overload from inflammatory ferritin elevation)
@@ -112,9 +113,9 @@ Guideline sources:
   - AASLD guidance on hereditary hemochromatosis
 
 Lab reference sources:
-  - Ferritin upper normal: ~200 µg/L (adult male); ~150 µg/L (adult female) — lab-dependent
-  - Transferrin saturation: ≥45% in fasting sample warrants further evaluation (EASL)
-  - Note: both ranges vary by laboratory and population; source-level label preserved
+  - Ferritin: reference ranges vary by laboratory, sex, and age; this demo uses lab-reported ranges, not a fixed universal threshold. Do not hard-code "200 µg/L" as a universal upper normal.
+  - Transferrin saturation: fasting TSAT ≥45% is a commonly cited threshold for further evaluation (EASL 2022); the demo value of 58% is unambiguously above this threshold.
+  - Both ranges are lab-dependent; source-level label preserved in evidence schema.
 
 HFE evidence level:
   - C282Y homozygosity: strongest known HFE-associated iron overload genotype
