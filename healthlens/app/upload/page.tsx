@@ -61,7 +61,7 @@ export default function UploadPage() {
             href="/"
             className="rounded-full bg-white px-4 py-2 text-sm font-semibold text-[#007aff] shadow-sm"
           >
-            Results
+            Back to app
           </Link>
         </header>
 
@@ -333,10 +333,9 @@ function LoadingSpinner() {
 
 function NavBar() {
   const items = [
-    { href: "/",      icon: "✦",  label: "Results" },
-    { href: "/blood", icon: "🩸", label: "Blood"   },
-    { href: "/dna",   icon: "🧬", label: "DNA"     },
-    { href: "/pgx",   icon: "💊", label: "PGx"     },
+    { href: "/",              icon: "✦", label: "App" },
+    { href: "/upload",        icon: "＋", label: "Demo input"  },
+    { href: "/?summary=1",    icon: "▤", label: "Summary" },
   ];
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-10 border-t border-[#e5e5ea] bg-white/95 px-5 pb-8 pt-2 backdrop-blur">
@@ -345,7 +344,7 @@ function NavBar() {
           <Link
             key={i.href}
             href={i.href}
-            className="flex flex-col items-center gap-0.5 text-[10px] font-semibold text-[#8e8e93]"
+            className={`flex flex-col items-center gap-0.5 text-[10px] font-semibold ${i.label === "Inputs" ? "text-[#007aff]" : "text-[#8e8e93]"}`}
           >
             <span className="text-lg leading-none">{i.icon}</span>
             <span>{i.label}</span>

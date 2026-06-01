@@ -72,6 +72,10 @@ export default function DnaPage() {
     <div className="min-h-screen bg-[#f2f2f7] pb-28 text-[#1c1c1e]">
       <div className="mx-auto w-full max-w-[430px]">
 
+        <Link href="/" className="mx-4 mt-4 inline-flex rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-[#007aff] shadow-sm">
+          ← Back to HealthLens app
+        </Link>
+
         <header className="px-4 pb-4 pt-14">
           <p className="text-xs font-semibold uppercase tracking-wider text-[#8e8e93]">
             DNA · CYP2C19
@@ -180,10 +184,9 @@ export default function DnaPage() {
 
 function NavBar({ active }: { active: string }) {
   const items = [
-    { href: "/",      icon: "✦",  label: "Results" },
-    { href: "/blood", icon: "🩸", label: "Blood"   },
-    { href: "/dna",   icon: "🧬", label: "DNA"     },
-    { href: "/pgx",   icon: "💊", label: "PGx"     },
+    { href: "/",              icon: "✦", label: "App" },
+    { href: "/upload",        icon: "＋", label: "Demo input"  },
+    { href: "/?summary=1",    icon: "▤", label: "Summary" },
   ];
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-10 border-t border-[#e5e5ea] bg-white/95 px-5 pb-8 pt-2 backdrop-blur">

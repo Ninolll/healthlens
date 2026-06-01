@@ -1,63 +1,38 @@
 "use client";
-import { useState } from "react";
-import Link from "next/link";
+import { useState, useEffect } from "react";
 
-// ─── marker configs with clinical thresholds ──────────────────────────────────
-const MARKERS = {
-  apob: {
-    name: "ApoB",
-    unit: "mg/dL",
-    optimalBelow: 80,
-    borderlineBelow: 120,
-    scale: 160,
-    description: "Atherosclerotic risk marker",
-    source: "Blood panel · May 2026",
-  },
-  ldl: {
-    name: "LDL-C",
-    unit: "mg/dL",
-    optimalBelow: 100,
-    borderlineBelow: 160,
-    scale: 210,
-    description: "Low-density lipoprotein",
-    source: "Blood panel · May 2026",
-  },
-  hscrp: {
-    name: "hs-CRP",
-    unit: "mg/L",
-    optimalBelow: 1.0,
-    borderlineBelow: 3.0,
-    scale: 7,
-    description: "Systemic inflammation marker",
-    source: "Blood panel · May 2026",
-  },
-  homocysteine: {
-    name: "Homocysteine",
-    unit: "µmol/L",
-    optimalBelow: 15,
-    borderlineBelow: 20,
-    scale: 28,
-    description: "Methylation pathway marker",
-    source: "Blood panel · May 2026",
-    lowBelow: 5,
-  },
-} as const;
-
+// ─── types ────────────────────────────────────────────────────────────────────
+type Tab = "results" | "inputs" | "questions" | "evidence" | "data";
+type DetailSheet = "med" | "lipid" | "methyl" | "hfe" | null;
 type MarkerKey = keyof typeof MARKERS;
 type Status = "low" | "optimal" | "borderline" | "high";
 type DefaultValues = Record<MarkerKey, number>;
 
-const DEFAULT_VALUES: DefaultValues = {
-  apob: 125,
-  ldl: 155,
-  hscrp: 4.2,
-  homocysteine: 7.8,
-};
+// ─── marker configs ───────────────────────────────────────────────────────────
+const MARKERS = {
+  apob: {
+    name: "ApoB", unit: "mg/dL", optimalBelow: 80, borderlineBelow: 120, scale: 160,
+    description: "Atherosclerotic risk marker", source: "Blood panel · May 2026",
+  },
+  ldl: {
+    name: "LDL-C", unit: "mg/dL", optimalBelow: 100, borderlineBelow: 160, scale: 210,
+    description: "Low-density lipoprotein", source: "Blood panel · May 2026",
+  },
+  hscrp: {
+    name: "hs-CRP", unit: "mg/L", optimalBelow: 1.0, borderlineBelow: 3.0, scale: 7,
+    description: "Systemic inflammation marker", source: "Blood panel · May 2026",
+  },
+  homocysteine: {
+    name: "Homocysteine", unit: "µmol/L", optimalBelow: 15, borderlineBelow: 20, scale: 28,
+    description: "Methylation pathway marker", source: "Blood panel · May 2026", lowBelow: 5,
+  },
+} as const;
 
-// Previous blood panel — used for trend comparison
+const DEFAULT_VALUES: DefaultValues = { apob: 125, ldl: 155, hscrp: 4.2, homocysteine: 7.8 };
 const PREV_PANEL = { apob: 118, ldl: 142, hscrp: 3.8 };
 const PREV_PANEL_LABEL = "Nov 2025";
 
+// ─── pure functions ───────────────────────────────────────────────────────────
 function getStatus(key: MarkerKey, value: number): Status {
   const m = MARKERS[key];
   if ("lowBelow" in m && value < (m as typeof MARKERS.homocysteine).lowBelow) return "low";
@@ -93,7 +68,7 @@ function lipidSeverity(vals: DefaultValues): "monitor" | "watch" {
   return "watch";
 }
 
-// ─── segmented range bar ──────────────────────────────────────────────────────
+// ─── segmented bar ────────────────────────────────────────────────────────────
 function SegmentedBar({ value, markerKey }: { value: number; markerKey: MarkerKey }) {
   const cfg = MARKERS[markerKey];
   const scale   = Math.max(cfg.scale, value * 1.1);
@@ -103,7 +78,6 @@ function SegmentedBar({ value, markerKey }: { value: number; markerKey: MarkerKe
   const dotPct  = Math.min((value / scale) * 100, 97);
   const status  = getStatus(markerKey, value);
   const dotColor = status === "high" ? "#ff3b30" : status === "borderline" ? "#ff9500" : "#34c759";
-
   return (
     <div className="relative mt-1.5">
       <div className="flex h-1.5 overflow-hidden rounded-full">
@@ -119,909 +93,22 @@ function SegmentedBar({ value, markerKey }: { value: number; markerKey: MarkerKe
   );
 }
 
-// ─── doctor summary sheet ─────────────────────────────────────────────────────
-function DoctorSummarySheet({
-  vals,
-  panelLabel,
-  hfeWithGenotype,
-  onClose,
-}: {
-  vals: DefaultValues;
-  panelLabel: string;
-  hfeWithGenotype: boolean;
-  onClose: () => void;
-}) {
-  return (
-    <div className="fixed inset-0 z-50 flex items-end bg-black/40" onClick={onClose}>
-      <div
-        className="w-full max-w-[430px] mx-auto rounded-t-3xl bg-white px-5 pt-5 pb-10 shadow-2xl"
-        onClick={e => e.stopPropagation()}
-      >
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-bold">Doctor summary</h2>
-          <button onClick={onClose} className="text-sm font-semibold text-[#007aff]">Done</button>
-        </div>
-        <div className="space-y-4 text-sm text-[#3a3a3c]">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-wider text-[#8e8e93] mb-1">Generated from</p>
-            <p>1 DNA file · CYP2C19 *2/*2</p>
-            <p>1 blood panel · {panelLabel}</p>
-            <p>Medication: clopidogrel</p>
-          </div>
-          <div className="border-t border-[#e5e5ea] pt-3">
-            <p className="text-xs font-semibold uppercase tracking-wider text-[#8e8e93] mb-1">Medication note</p>
-            <p>CYP2C19 *2/*2 predicts substantially reduced clopidogrel activation. Please review whether current therapy is appropriate given this result.</p>
-          </div>
-          <div className="border-t border-[#e5e5ea] pt-3">
-            <p className="text-xs font-semibold uppercase tracking-wider text-[#8e8e93] mb-1">Blood markers to discuss</p>
-            <p>ApoB: {vals.apob} mg/dL (ref &lt;80 optimal)</p>
-            <p>LDL-C: {vals.ldl} mg/dL (ref &lt;100 optimal)</p>
-            <p>hs-CRP: {vals.hscrp} mg/L (ref &lt;1.0 low risk)</p>
-            <p>Homocysteine: {vals.homocysteine} µmol/L (ref 5–15 normal)</p>
-          </div>
-          <div className="border-t border-[#e5e5ea] pt-3">
-            <p className="text-xs font-semibold uppercase tracking-wider text-[#8e8e93] mb-1">Questions to bring</p>
-            <p>1. Is clopidogrel still appropriate given CYP2C19 *2/*2?</p>
-            <p>2. Should ApoB and LDL-C be re-checked after a lipid review?</p>
-            <p>3. Does hs-CRP elevation warrant further investigation?</p>
-            {vals.homocysteine >= MARKERS.homocysteine.optimalBelow && (
-              <p>4. Homocysteine is {vals.homocysteine} µmol/L — is this worth discussing in context of MTHFR?</p>
-            )}
-            {hfeWithGenotype ? (
-              <p className="mt-1">5. Iron markers elevated and HFE C282Y/C282Y present — is an HFE-related iron overload evaluation appropriate?</p>
-            ) : (
-              <p className="mt-1 text-[#8e8e93] text-xs">Iron markers (demo): toggle to &quot;Blood + DNA&quot; in the worked example to add the HFE question here.</p>
-            )}
-          </div>
-          {hfeWithGenotype && (
-            <div className="border-t border-[#e5e5ea] pt-3">
-              <p className="text-xs font-semibold uppercase tracking-wider text-[#8e8e93] mb-1">Iron markers (worked example)</p>
-              <p>HFE C282Y/C282Y · Ferritin 420 µg/L · TSAT 58%</p>
-              <p className="mt-1 text-[11px] text-[#8e8e93]">HFE C282Y has incomplete penetrance. This does not diagnose iron overload.</p>
-            </div>
-          )}
-          <p className="border-t border-[#e5e5ea] pt-3 text-[10px] text-[#c7c7cc]">
-            HealthLens · Prototype · Not a clinical report · For discussion purposes only
-          </p>
-        </div>
-        <button
-          onClick={() => {
-            const qNum = (n: number) => `${n}.`;
-            let q = 3;
-            const homocysteineNote = vals.homocysteine >= 15
-              ? `${qNum(++q)} Homocysteine is ${vals.homocysteine} µmol/L — worth discussing in context of MTHFR variant.`
-              : "";
-            const hfeNote = hfeWithGenotype
-              ? `${qNum(++q)} Iron markers elevated and HFE C282Y/C282Y present — is an HFE-related iron overload evaluation appropriate?`
-              : "";
-            const text = [
-              "HealthLens — Patient-prepared clinician discussion summary",
-              `Blood panel: ${panelLabel}`,
-              "DNA file: 23andMe · CYP2C19 *2/*2 · MTHFR variant",
-              "Medication on file: Clopidogrel",
-              "",
-              "Medication note:",
-              "CYP2C19 *2/*2 predicts substantially reduced clopidogrel activation.",
-              "Please review whether current therapy is appropriate.",
-              "",
-              "Blood markers to discuss:",
-              `ApoB: ${vals.apob} mg/dL (ref <80 optimal)`,
-              `LDL-C: ${vals.ldl} mg/dL (ref <100 optimal)`,
-              `hs-CRP: ${vals.hscrp} mg/L (ref <1.0 low risk)`,
-              `Homocysteine: ${vals.homocysteine} µmol/L (ref 5–15 normal)`,
-              "",
-              "Questions to bring:",
-              "1. Is clopidogrel still appropriate given CYP2C19 *2/*2?",
-              "2. Should ApoB and LDL-C be re-checked after a lipid review?",
-              "3. Does hs-CRP elevation warrant further investigation?",
-              homocysteineNote,
-              hfeNote,
-              "",
-              "Not a clinical report. For discussion purposes only.",
-              "Generated by HealthLens Prototype.",
-            ].filter(Boolean).join("\n");
-            navigator.clipboard?.writeText(text);
-          }}
-          className="mt-5 w-full rounded-2xl bg-[#f5f4f0] py-3 text-sm font-semibold text-[#007aff]"
-        >
-          Copy to clipboard
-        </button>
-      </div>
-    </div>
-  );
-}
-
-// ─── main page ────────────────────────────────────────────────────────────────
-export default function Home() {
-  const [vals, setVals] = useState<DefaultValues>(DEFAULT_VALUES);
-  const [editingKey, setEditingKey] = useState<MarkerKey | null>(null);
-  const [editDraft, setEditDraft] = useState("");
-  const [expandedCard, setExpandedCard] = useState<string | null>(null);
-  const [showSummary, setShowSummary] = useState(false);
-  const [showExtraMarkers, setShowExtraMarkers] = useState(false);
-  const [panelLabel, setPanelLabel] = useState("May 2026");
-  const [panelUploaded, setPanelUploaded] = useState(false);
-  const [b12, setB12] = useState("520");
-  const [folate, setFolate] = useState("12.4");
-  const [dataCleared, setDataCleared] = useState(false);
-  const [hfeWithGenotype, setHfeWithGenotype] = useState(false);
-  const [showHfeTrace, setShowHfeTrace] = useState(false);
-
-  function commitEdit() {
-    const n = parseFloat(editDraft);
-    if (!isNaN(n) && n > 0 && editingKey) {
-      setVals(prev => ({ ...prev, [editingKey]: n }));
-    }
-    setEditingKey(null);
-    setEditDraft("");
-  }
-
-  function startEdit(key: MarkerKey) {
-    setEditingKey(key);
-    setEditDraft(String(vals[key]));
-  }
-
-  function uploadNewerPanel() {
-    setVals({ apob: 112, ldl: 138, hscrp: 2.2, homocysteine: 8.1 });
-    setPanelLabel("June 2026");
-    setPanelUploaded(true);
-  }
-
-  const toggle = (id: string) => setExpandedCard(prev => prev === id ? null : id);
-  const lipidSev = lipidSeverity(vals);
-  const nonOptimalCount = (["apob", "ldl", "hscrp"] as MarkerKey[]).filter(k => getStatus(k, vals[k]) !== "optimal").length;
-
-  // MTHFR card state: monitor when homocysteine is above normal range
-  const mthfrStatus: "monitor" | "reassuring" =
-    vals.homocysteine >= MARKERS.homocysteine.optimalBelow ? "monitor" : "reassuring";
-
-  return (
-    <main className="min-h-screen bg-[#f5f4f0] pb-28 text-[#1c1c1e]">
-      {showSummary && (
-        <DoctorSummarySheet vals={vals} panelLabel={panelLabel} hfeWithGenotype={hfeWithGenotype} onClose={() => setShowSummary(false)} />
-      )}
-
-      <div className="mx-auto flex w-full max-w-[430px] flex-col">
-
-        {/* ── Hero ──────────────────────────────────────────────────────── */}
-        <header className="flex items-start justify-between px-4 pb-4 pt-14">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-wider text-[#8e8e93]">HealthLens</p>
-            <h1 className="mt-0.5 text-[26px] font-bold leading-tight tracking-tight">Your {panelLabel} check</h1>
-            <p className="mt-1 text-sm text-[#3a3a3c]">
-              1 to discuss · {nonOptimalCount} blood signal{nonOptimalCount !== 1 ? "s" : ""} · 1 DNA finding
-            </p>
-          </div>
-          <Link
-            href="/upload"
-            className="mt-1 rounded-full bg-white px-3 py-2 text-xs font-semibold text-[#007aff] shadow-sm"
-          >
-            Edit inputs
-          </Link>
-        </header>
-
-        {/* ── Summary strip ─────────────────────────────────────────────── */}
-        <div className="mx-4 mb-6 grid grid-cols-3 divide-x divide-[#e5e5ea] overflow-hidden rounded-2xl bg-white shadow-sm">
-          <button onClick={() => toggle("med")} className="px-3 py-3.5 text-left">
-            <p className="text-[22px] font-bold tabular-nums leading-none text-[#ff3b30]">1</p>
-            <p className="mt-1 text-[11px] font-semibold text-[#1c1c1e]">Discuss</p>
-            <p className="text-[10px] text-[#8e8e93]">with clinician</p>
-          </button>
-          <button onClick={() => toggle("lipid")} className="px-3 py-3.5 text-left">
-            <p className="text-[22px] font-bold tabular-nums leading-none text-[#ff9500]">{nonOptimalCount}</p>
-            <p className="mt-1 text-[11px] font-semibold text-[#1c1c1e]">Blood signals</p>
-            <p className="text-[10px] text-[#8e8e93]">outside optimal</p>
-          </button>
-          <button onClick={() => toggle("methyl")} className="px-3 py-3.5 text-left">
-            <p className={`text-[22px] font-bold tabular-nums leading-none ${mthfrStatus === "monitor" ? "text-[#ff9500]" : "text-[#34c759]"}`}>1</p>
-            <p className="mt-1 text-[11px] font-semibold text-[#1c1c1e]">{mthfrStatus === "monitor" ? "Monitor" : "Reassuring"}</p>
-            <p className="text-[10px] text-[#8e8e93]">{mthfrStatus === "monitor" ? "blood signal" : "no active flag"}</p>
-          </button>
-        </div>
-
-        {/* ── Input data used ───────────────────────────────────────────── */}
-        <SectionLabel>Input data used</SectionLabel>
-        <section className="mx-4 mb-6 overflow-hidden rounded-2xl bg-white shadow-sm">
-          <div className="divide-y divide-[#f0ede8]">
-            <InputRow label="DNA file" value="23andMe raw data · CYP2C19 *2/*2" tag="Uploaded" />
-            <InputRow label="Blood panel" value={`${panelLabel} · 4 markers`} tag="Uploaded" />
-            <InputRow label="Medication" value="Clopidogrel" tag="On file" />
-            <InputRow label="Key markers used" value="ApoB · LDL-C · hs-CRP · Homocysteine" />
-            <InputRow label="HFE worked example" value="C282Y/C282Y · Ferritin · TSAT" tag="Demo" />
-          </div>
-          <div className="border-t border-[#f0ede8] px-4 py-3">
-            <Link href="/upload" className="flex w-full items-center justify-between text-sm font-semibold text-[#007aff]">
-              <span>Change inputs</span>
-              <span>›</span>
-            </Link>
-          </div>
-        </section>
-
-        {/* ── What matters now ──────────────────────────────────────────── */}
-        <SectionLabel>What matters now</SectionLabel>
-        <div className="mb-6 flex flex-col gap-3 px-4">
-
-          {/* Card 1 — Important: CYP2C19 × clopidogrel */}
-          <article className="overflow-hidden rounded-2xl shadow-[0_2px_16px_rgba(255,59,48,0.12)]">
-            <button
-              className="flex w-full items-start gap-3 bg-[#ff3b30] px-4 pb-4 pt-4 text-left"
-              onClick={() => toggle("med")}
-            >
-              <div className="flex-1">
-                <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#ffb3af]">
-                  Important · DNA-driven
-                </p>
-                <h3 className="mt-0.5 text-[17px] font-bold leading-snug text-white">
-                  Discuss clopidogrel with your prescribing clinician
-                </h3>
-                <p className="mt-1 text-xs text-white/70">CYP2C19 *2/*2 · Poor Metabolizer</p>
-              </div>
-              <ChevronIcon open={expandedCard === "med"} light />
-            </button>
-
-            {expandedCard === "med" && (
-              <div className="bg-white px-4 py-4 space-y-4">
-                <div>
-                  <p className="mb-1.5 text-xs font-semibold uppercase tracking-wider text-[#8e8e93]">Data used</p>
-                  <div className="divide-y divide-[#f0ede8]">
-                    <DataUsedRow text="CYP2C19 genotype: *2/*2 (from DNA file)" />
-                    <DataUsedRow text="Medication on file: Clopidogrel" />
-                    <DataUsedRow text="Clinical indication: cardiovascular (assumed)" />
-                  </div>
-                </div>
-
-                <p className="text-sm leading-6 text-[#3a3a3c]">
-                  Your CYP2C19 result (*2/*2, Poor Metabolizer) suggests substantially reduced ability to activate clopidogrel. This is clinically relevant if you are currently taking it for a cardiovascular indication.
-                </p>
-
-                <div>
-                  <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-[#8e8e93]">Evidence trace</p>
-                  <div className="divide-y divide-[#f0ede8]">
-                    <EvidenceRow n={1} text="CYP2C19 *2/*2 → Poor Metabolizer (CPIC diplotype table)" />
-                    <EvidenceRow n={2} text="Poor Metabolizer + clopidogrel → strong CPIC alert" />
-                    <EvidenceRow n={3} text="Clopidogrel listed as current medication in your data" />
-                  </div>
-                </div>
-
-                <div>
-                  <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-[#8e8e93]">Questions for your clinician</p>
-                  <div className="space-y-2">
-                    <QuestionRow text="Is clopidogrel still appropriate given my CYP2C19 result?" />
-                    <QuestionRow text="Should I be considered for an alternative antiplatelet therapy?" />
-                    <QuestionRow text="Does my specific indication change the clinical approach here?" />
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between border-t border-[#f0ede8] pt-3">
-                  <p className="text-[11px] text-[#c7c7cc]">Source: CPIC 2022 · PMID 35034351</p>
-                  <button
-                    onClick={() => setShowSummary(true)}
-                    className="text-[11px] font-semibold text-[#007aff]"
-                  >
-                    Doctor summary ›
-                  </button>
-                </div>
-                <p className="text-[11px] text-[#8e8e93]">
-                  Do not start, stop, or change medication based on this result alone.
-                </p>
-              </div>
-            )}
-          </article>
-
-          {/* Card 2 — Monitor: Blood-first signal */}
-          <article className="overflow-hidden rounded-2xl bg-white shadow-sm">
-            <button
-              className="flex w-full items-start gap-3 px-4 py-4 text-left"
-              onClick={() => toggle("lipid")}
-            >
-              <div className="mt-2 h-2.5 w-2.5 shrink-0 rounded-full bg-[#ff9500]" />
-              <div className="flex-1">
-                <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#ff9500]">
-                  Monitor · Blood-first signal
-                </p>
-                <h3 className="mt-0.5 text-[15px] font-semibold leading-snug">
-                  {lipidSev === "monitor"
-                    ? "ApoB and LDL-C above optimal — worth discussing"
-                    : "Lipid values in borderline range — worth tracking"}
-                </h3>
-                <p className="mt-0.5 text-xs text-[#8e8e93]">
-                  ApoB {vals.apob} · LDL-C {vals.ldl} · hs-CRP {vals.hscrp}
-                </p>
-              </div>
-              <ChevronIcon open={expandedCard === "lipid"} />
-            </button>
-
-            {expandedCard === "lipid" && (
-              <div className="border-t border-[#f0ede8] px-4 py-4 space-y-4">
-                <div>
-                  <p className="mb-1.5 text-xs font-semibold uppercase tracking-wider text-[#8e8e93]">Data used</p>
-                  <div className="divide-y divide-[#f0ede8]">
-                    <DataUsedRow text={`ApoB: ${vals.apob} mg/dL (from blood panel · ${panelLabel})`} />
-                    <DataUsedRow text={`LDL-C: ${vals.ldl} mg/dL (from blood panel · ${panelLabel})`} />
-                    <DataUsedRow text={`hs-CRP: ${vals.hscrp} mg/L (from blood panel · ${panelLabel})`} />
-                    <DataUsedRow text="Reference: NHANES adult population ranges" />
-                  </div>
-                </div>
-
-                <p className="text-sm leading-6 text-[#3a3a3c]">
-                  Your blood test is the primary signal here. ApoB and LDL-C reflect current lipid burden, while hs-CRP adds an inflammation signal. DNA context does not drive this interpretation.
-                </p>
-                <div>
-                  <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-[#8e8e93]">Marker detail</p>
-                  <div className="space-y-3">
-                    {(["apob", "ldl", "hscrp"] as MarkerKey[]).map(k => {
-                      const cfg = MARKERS[k];
-                      const status = getStatus(k, vals[k]);
-                      const colors = statusColors(status);
-                      return (
-                        <div key={k}>
-                          <div className="flex items-baseline justify-between">
-                            <span className="text-sm font-semibold">{cfg.name}</span>
-                            <div className="flex items-baseline gap-1">
-                              <span className={`text-[20px] font-bold tabular-nums leading-none ${colors.value}`}>{vals[k]}</span>
-                              <span className="text-xs text-[#8e8e93]">{cfg.unit}</span>
-                              <span className={`ml-1 rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${colors.badge}`}>
-                                {getStatusLabel(status, k)}
-                              </span>
-                            </div>
-                          </div>
-                          <SegmentedBar value={vals[k]} markerKey={k} />
-                          <p className="mt-0.5 text-[10px] text-[#c7c7cc]">
-                            Optimal &lt;{cfg.optimalBelow} · Borderline {cfg.optimalBelow}–{cfg.borderlineBelow - 1} · High ≥{cfg.borderlineBelow}
-                          </p>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-                <div>
-                  <p className="mb-1.5 text-xs font-semibold uppercase tracking-wider text-[#8e8e93]">Questions for your clinician</p>
-                  <div className="space-y-1.5">
-                    <QuestionRow text="Should ApoB be retested after a lifestyle or medication review?" />
-                    <QuestionRow text="Is hs-CRP elevation worth investigating further?" />
-                  </div>
-                </div>
-                <button
-                  onClick={() => setShowSummary(true)}
-                  className="flex w-full items-center gap-2 py-1 text-sm font-semibold text-[#007aff]"
-                >
-                  <span>📋</span> Preview doctor summary
-                </button>
-              </div>
-            )}
-          </article>
-
-          {/* Card 3 — MTHFR: reactive to homocysteine level */}
-          <article className="overflow-hidden rounded-2xl bg-white shadow-sm">
-            <button
-              className="flex w-full items-start gap-3 px-4 py-3.5 text-left"
-              onClick={() => toggle("methyl")}
-            >
-              <div className={`mt-2 h-2.5 w-2.5 shrink-0 rounded-full ${mthfrStatus === "monitor" ? "bg-[#ff9500]" : "bg-[#34c759]"}`} />
-              <div className="flex-1">
-                <p className={`text-[11px] font-bold uppercase tracking-[0.14em] ${mthfrStatus === "monitor" ? "text-[#ff9500]" : "text-[#34c759]"}`}>
-                  {mthfrStatus === "monitor" ? "Monitor · Supported by blood" : "Reassuring · Not currently reflected"}
-                </p>
-                <h3 className="mt-0.5 text-[15px] font-semibold leading-snug">
-                  MTHFR variant · homocysteine {vals.homocysteine} µmol/L —{" "}
-                  {mthfrStatus === "monitor" ? "elevated" : "normal"}
-                </h3>
-              </div>
-              <ChevronIcon open={expandedCard === "methyl"} />
-            </button>
-
-            {expandedCard === "methyl" && (
-              <div className="border-t border-[#f0ede8] px-4 py-4 space-y-3">
-                <div>
-                  <p className="mb-1.5 text-xs font-semibold uppercase tracking-wider text-[#8e8e93]">Data used</p>
-                  <div className="divide-y divide-[#f0ede8]">
-                    <DataUsedRow text="MTHFR variant: detected in DNA file" />
-                    <DataUsedRow text={`Homocysteine: ${vals.homocysteine} µmol/L (from blood panel · ${panelLabel})`} />
-                    {showExtraMarkers && <DataUsedRow text={`B12: ${b12} pg/mL · Folate: ${folate} ng/mL`} />}
-                  </div>
-                </div>
-
-                <p className="text-sm leading-6 text-[#3a3a3c]">
-                  {mthfrStatus === "monitor"
-                    ? `An MTHFR variant appears in your DNA file. Your homocysteine (${vals.homocysteine} µmol/L) is above the normal range (5–15 µmol/L) — the blood marker is elevated, so this DNA context may be more relevant to discuss with your clinician.`
-                    : `An MTHFR variant appears in your DNA file. Your homocysteine (${vals.homocysteine} µmol/L) is within the normal range (5–15 µmol/L) — the current blood result is not showing an active signal related to this context.`}
-                </p>
-                <div>
-                  <p className="mb-1.5 text-xs font-semibold uppercase tracking-wider text-[#8e8e93]">Evidence trace</p>
-                  <div className="divide-y divide-[#f0ede8]">
-                    <EvidenceRow n={1} text="MTHFR variant identified in DNA file" />
-                    <EvidenceRow n={2} text={`Homocysteine ${vals.homocysteine} µmol/L — ${mthfrStatus === "monitor" ? "above normal range (>15)" : "within normal range (5–15)"}`} />
-                    {mthfrStatus === "monitor" && (
-                      <EvidenceRow n={3} text="Elevated homocysteine + MTHFR → the blood marker is elevated, so this DNA context may be more relevant" />
-                    )}
-                  </div>
-                </div>
-                {mthfrStatus === "reassuring" && (
-                  <p className="text-xs text-[#8e8e93]">
-                    Edit homocysteine above 15 µmol/L to see how the result state changes.
-                  </p>
-                )}
-                {showExtraMarkers ? (
-                  <div className="space-y-2">
-                    <div className="grid grid-cols-2 gap-2">
-                      <label className="text-xs font-semibold text-[#8e8e93]">
-                        B12
-                        <input
-                          type="number"
-                          value={b12}
-                          onChange={e => setB12(e.target.value)}
-                          className="mt-1 w-full rounded-xl bg-[#f5f4f0] px-3 py-2 text-sm font-bold text-[#1c1c1e] focus:outline-none"
-                        />
-                      </label>
-                      <label className="text-xs font-semibold text-[#8e8e93]">
-                        Folate
-                        <input
-                          type="number"
-                          value={folate}
-                          onChange={e => setFolate(e.target.value)}
-                          className="mt-1 w-full rounded-xl bg-[#f5f4f0] px-3 py-2 text-sm font-bold text-[#1c1c1e] focus:outline-none"
-                        />
-                      </label>
-                    </div>
-                    <p className="text-[11px] text-[#c7c7cc]">B12 {b12} pg/mL · Folate {folate} ng/mL — context only</p>
-                  </div>
-                ) : (
-                  <button
-                    onClick={() => setShowExtraMarkers(true)}
-                    className="flex items-center gap-1.5 text-sm font-semibold text-[#007aff]"
-                  >
-                    <span>＋</span> Add B12 / folate
-                  </button>
-                )}
-              </div>
-            )}
-          </article>
-        </div>
-
-        {/* ── DNA × blood ───────────────────────────────────────────────── */}
-        <SectionLabel>DNA × blood</SectionLabel>
-        <div className="mx-4 mb-6 overflow-hidden rounded-2xl bg-white shadow-sm">
-          <div className="divide-y divide-[#f0ede8]">
-            <RelRow
-              label="CYP2C19 *2/*2"
-              tag="DNA-driven"
-              tagColor="text-[#007aff]"
-              desc="Predicts reduced clopidogrel activation. Blood markers do not confirm or deny this — it is a genetic trait."
-            />
-            <RelRow
-              label="ApoB · LDL-C · hs-CRP"
-              tag="Blood-first signal"
-              tagColor="text-[#ff9500]"
-              desc="Current cardiovascular signal from lipid burden and inflammation. No genetic variant drives this interpretation."
-            />
-            <RelRow
-              label="MTHFR + homocysteine"
-              tag={mthfrStatus === "monitor" ? "Supported by blood" : "Not currently reflected"}
-              tagColor={mthfrStatus === "monitor" ? "text-[#ff9500]" : "text-[#34c759]"}
-              desc={mthfrStatus === "monitor"
-                ? `MTHFR variant present in DNA. Homocysteine is elevated (${vals.homocysteine} µmol/L) — the blood marker is elevated, so this DNA context may be more relevant to discuss.`
-                : `MTHFR variant present in DNA. Homocysteine is ${vals.homocysteine} µmol/L — the current blood result is not showing an active signal related to this context.`}
-            />
-          </div>
-        </div>
-
-        {/* ── Where DNA changes the output ─────────────────────────────── */}
-        <SectionLabel>Where DNA changes the output</SectionLabel>
-        <section className="mx-4 mb-6 overflow-hidden rounded-2xl bg-white shadow-sm">
-          <div className="px-4 pt-4 pb-2">
-            <p className="text-sm font-semibold text-[#1c1c1e]">Worked example: HFE genotype + elevated ferritin</p>
-            <p className="mt-0.5 text-xs text-[#8e8e93]">
-              Toggle to see how the same blood result changes when genotype is present
-            </p>
-          </div>
-
-          {/* Toggle */}
-          <div className="mx-4 mb-3 grid grid-cols-2 gap-1 rounded-xl bg-[#f5f4f0] p-1">
-            <button
-              onClick={() => setHfeWithGenotype(false)}
-              className={`rounded-lg py-2 text-xs font-semibold transition-all ${!hfeWithGenotype ? "bg-white shadow-sm text-[#1c1c1e]" : "text-[#8e8e93]"}`}
-            >
-              Blood only
-            </button>
-            <button
-              onClick={() => setHfeWithGenotype(true)}
-              className={`rounded-lg py-2 text-xs font-semibold transition-all ${hfeWithGenotype ? "bg-[#007aff] text-white shadow-sm" : "text-[#8e8e93]"}`}
-            >
-              Blood + DNA
-            </button>
-          </div>
-
-          {/* Dynamic output panel */}
-          <div className={`mx-4 mb-3 rounded-xl px-3 py-3 ${hfeWithGenotype ? "border border-[#007aff30] bg-[#007aff06]" : "bg-[#f5f4f0]"}`}>
-            <div className="mb-2 flex items-center justify-between">
-              <span className={`text-[10px] font-bold uppercase tracking-wider ${hfeWithGenotype ? "text-[#007aff]" : "text-[#8e8e93]"}`}>
-                {hfeWithGenotype ? "Clinician discussion · DNA × blood" : "Monitor · Blood-first signal"}
-              </span>
-              <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${hfeWithGenotype ? "bg-[#007aff20] text-[#0055b3]" : "bg-[#e5e5ea] text-[#8e8e93]"}`}>
-                {hfeWithGenotype ? "Genotype-aware" : "Standard"}
-              </span>
-            </div>
-
-            <p className="text-xs font-semibold text-[#1c1c1e]">
-              Ferritin 420 µg/L · TSAT 58%
-              {hfeWithGenotype && " · HFE C282Y/C282Y"}
-            </p>
-            <p className="mt-0.5 text-[10px] text-[#8e8e93]">
-              Both above this demo lab&apos;s reference range{hfeWithGenotype ? " · rs1800562 homozygous" : ""}
-            </p>
-
-            <p className="mt-2 text-xs leading-5 text-[#3a3a3c]">
-              {hfeWithGenotype
-                ? "Discuss whether an HFE-related iron overload evaluation is appropriate. HFE C282Y has incomplete penetrance — this does not diagnose iron overload. Ferritin can be elevated for other reasons."
-                : "Discuss repeat fasting iron studies and possible inflammation, liver, and metabolic context with your clinician."}
-            </p>
-
-            <div className={`mt-2 rounded-lg px-2.5 py-2 ${hfeWithGenotype ? "bg-[#007aff12]" : "bg-white/70"}`}>
-              <p className="mb-0.5 text-[10px] font-semibold uppercase tracking-wider text-[#8e8e93]">Clinician question</p>
-              <p className="text-xs leading-5 text-[#3a3a3c]">
-                {hfeWithGenotype
-                  ? "Is an HFE-related iron overload evaluation appropriate given these iron markers and HFE C282Y/C282Y?"
-                  : "These iron markers are elevated — should I repeat fasting iron studies and check for inflammation or liver involvement?"}
-              </p>
-            </div>
-          </div>
-
-          {/* What changed — only visible in genotype state */}
-          {hfeWithGenotype && (
-            <div className="mx-4 mb-3 space-y-1.5">
-              <p className="text-[11px] font-semibold text-[#1c1c1e]">What genotype changed</p>
-              <GenotypeDeltaRow text="Interpretation priority — a specific evaluation pathway is now worth discussing" />
-              <GenotypeDeltaRow text="The clinician question — from broad iron workup to HFE-specific evaluation" />
-              <GenotypeDeltaRow text="Which uncertainty matters — iron overload vs. inflammation vs. other causes" />
-            </div>
-          )}
-
-          {/* Explanatory footer */}
-          <div className="border-t border-[#f0ede8] px-4 py-3">
-            <p className="text-[11px] leading-5 text-[#8e8e93]">
-              {hfeWithGenotype
-                ? "DNA can change which question is worth asking next. Blood shows the current signal; DNA changes how we frame the follow-up."
-                : "Without genotype context, the question is broader: rule out inflammation, liver disease, and metabolic causes before drawing conclusions."}
-            </p>
-          </div>
-
-          {/* End-to-end trace toggle */}
-          <button
-            onClick={() => setShowHfeTrace(prev => !prev)}
-            className="flex w-full items-center justify-between border-t border-[#f0ede8] px-4 py-3"
-          >
-            <span className="text-xs font-semibold text-[#007aff]">End-to-end trace</span>
-            <ChevronIcon open={showHfeTrace} />
-          </button>
-
-          {showHfeTrace && (
-            <div className="border-t border-[#f0ede8] px-4 py-4 space-y-4">
-
-              {/* Inputs */}
-              <div>
-                <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-[#8e8e93]">Inputs</p>
-                <div className="divide-y divide-[#f0ede8]">
-                  <TraceRow label="Ferritin" value="420 µg/L · above demo lab ref" />
-                  <TraceRow label="TSAT" value="58% · above demo lab ref" />
-                  <TraceRow
-                    label="HFE variant"
-                    value={hfeWithGenotype ? "rs1800562 · C282Y/C282Y · homozygous" : "Not in this scenario"}
-                  />
-                </div>
-              </div>
-
-              {/* Rules fired */}
-              <div>
-                <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-[#8e8e93]">Rules fired</p>
-                <div className="divide-y divide-[#f0ede8]">
-                  <EvidenceRow n={1} text="elevated_ferritin → ferritin above lab reference range" />
-                  <EvidenceRow n={2} text="elevated_transferrin_saturation → TSAT ≥ 45% (EASL 2022)" />
-                  {hfeWithGenotype ? (
-                    <>
-                      <EvidenceRow n={3} text="hfe_genotype_relevant → C282Y homozygous → genotype_changes_priority = true" />
-                      <EvidenceRow n={4} text="combined_iron_signal → rules 1+2+3 → priority: clinician discussion · dnaBloodStatus: supported_by_blood" />
-                    </>
-                  ) : (
-                    <EvidenceRow n={3} text="blood_only_iron_signal → no genotype context → priority: monitor · dnaBloodStatus: blood-first signal" />
-                  )}
-                </div>
-              </div>
-
-              {/* Conflict checks */}
-              <div>
-                <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-[#8e8e93]">Conflict checks</p>
-                <div className="space-y-2">
-                  <div className="rounded-lg bg-[#f5f4f0] px-3 py-2.5">
-                    <p className="text-[11px] font-semibold text-[#1c1c1e]">Ferritin is non-specific</p>
-                    <p className="mt-0.5 text-[11px] leading-[1.4] text-[#8e8e93]">
-                      Elevated CRP, liver disease, alcohol, or metabolic syndrome can raise ferritin independently. TSAT is less affected by inflammation, increasing specificity of the combined signal.
-                    </p>
-                  </div>
-                  {hfeWithGenotype && (
-                    <div className="rounded-lg bg-[#f5f4f0] px-3 py-2.5">
-                      <p className="text-[11px] font-semibold text-[#1c1c1e]">Incomplete penetrance (C282Y)</p>
-                      <p className="mt-0.5 text-[11px] leading-[1.4] text-[#8e8e93]">
-                        Most C282Y homozygotes do not develop clinical iron overload. Genotype changes the question to ask — not the diagnosis.
-                      </p>
-                    </div>
-                  )}
-                  <div className="rounded-lg bg-[#f5f4f0] px-3 py-2.5">
-                    <p className="text-[11px] font-semibold text-[#1c1c1e]">Lab reference variability</p>
-                    <p className="mt-0.5 text-[11px] leading-[1.4] text-[#8e8e93]">
-                      Ferritin and TSAT ranges vary by lab, sex, and age. Values flagged from demo lab report only — not universal thresholds.
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Final output */}
-              <div>
-                <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-[#8e8e93]">Final output</p>
-                <div className="rounded-lg bg-[#f5f4f0] px-3 py-2.5 space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-semibold text-[#1c1c1e]">Priority</span>
-                    <span className="text-[11px] text-[#8e8e93]">{hfeWithGenotype ? "Clinician discussion" : "Monitor"}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-semibold text-[#1c1c1e]">DNA × blood status</span>
-                    <span className="text-[11px] text-[#8e8e93]">{hfeWithGenotype ? "Supported by blood" : "Blood-first signal"}</span>
-                  </div>
-                  <div className="flex items-start justify-between gap-2">
-                    <span className="text-[11px] font-semibold text-[#1c1c1e]">Safety boundary</span>
-                    <span className="text-right text-[11px] text-[#8e8e93]">No diagnosis · Clinician review required</span>
-                  </div>
-                </div>
-              </div>
-
-              <p className="text-[10px] text-[#c7c7cc]">
-                Sources: EASL 2022 · ClinVar pathogenic · ClinGen definitive gene-disease association
-              </p>
-            </div>
-          )}
-        </section>
-
-        {/* ── Current blood signals ─────────────────────────────────────── */}
-        <SectionLabel>Current blood signals</SectionLabel>
-        <section className="mx-4 mb-6 overflow-hidden rounded-2xl bg-white shadow-sm">
-          <div className="divide-y divide-[#f0ede8]">
-            {(Object.keys(MARKERS) as MarkerKey[]).map(k => {
-              const cfg = MARKERS[k];
-              const status = getStatus(k, vals[k]);
-              const colors = statusColors(status);
-              const isEditing = editingKey === k;
-              return (
-                <div key={k} className="px-4 py-3">
-                  <div className="flex items-baseline justify-between">
-                    <span className="text-sm font-semibold">{cfg.name}</span>
-                    <div className="flex items-baseline gap-2">
-                      {isEditing ? (
-                        <input
-                          autoFocus
-                          type="number"
-                          step="0.1"
-                          value={editDraft}
-                          onChange={e => setEditDraft(e.target.value)}
-                          onBlur={commitEdit}
-                          onKeyDown={e => e.key === "Enter" && commitEdit()}
-                          className="w-20 text-right text-[20px] font-bold tabular-nums text-[#007aff] focus:outline-none bg-transparent"
-                        />
-                      ) : (
-                        <span className={`text-[20px] font-bold tabular-nums leading-none ${colors.value}`}>
-                          {vals[k]}
-                        </span>
-                      )}
-                      <span className="text-xs text-[#8e8e93]">{cfg.unit}</span>
-                      {!isEditing && (
-                        <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${colors.badge}`}>
-                          {getStatusLabel(status, k)}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  <SegmentedBar value={vals[k]} markerKey={k} />
-                  <div className="mt-1 flex items-center justify-between">
-                    <p className="text-[10px] text-[#c7c7cc]">
-                      {k === "homocysteine"
-                        ? "Normal 5–15 µmol/L"
-                        : `Optimal <${cfg.optimalBelow} · High ≥${cfg.borderlineBelow}`}
-                    </p>
-                    {isEditing ? (
-                      <button onClick={commitEdit} className="text-[11px] font-semibold text-[#007aff]">Update</button>
-                    ) : (
-                      <button onClick={() => startEdit(k)} className="text-[11px] font-semibold text-[#007aff]">Edit</button>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-          {!showExtraMarkers && (
-            <div className="border-t border-[#f0ede8] px-4 py-3">
-              <button
-                onClick={() => setShowExtraMarkers(true)}
-                className="flex items-center gap-1.5 text-sm font-semibold text-[#007aff]"
-              >
-                <span>＋</span> Add optional marker (B12, folate)
-              </button>
-            </div>
-          )}
-        </section>
-
-        {/* ── Panel comparison ──────────────────────────────────────────── */}
-        <SectionLabel>Panel comparison</SectionLabel>
-        <section className="mx-4 mb-6 overflow-hidden rounded-2xl bg-white shadow-sm">
-          <div className="px-4 pt-3 pb-1">
-            <p className="text-xs text-[#8e8e93]">{PREV_PANEL_LABEL} → {panelLabel}</p>
-          </div>
-          <div className="divide-y divide-[#f0ede8]">
-            <TrendRow label="ApoB" prev={PREV_PANEL.apob} current={vals.apob} unit="mg/dL" />
-            <TrendRow label="LDL-C" prev={PREV_PANEL.ldl} current={vals.ldl} unit="mg/dL" />
-            <TrendRow label="hs-CRP" prev={PREV_PANEL.hscrp} current={vals.hscrp} unit="mg/L" />
-          </div>
-          <div className="border-t border-[#f0ede8] px-4 py-3">
-            <button
-              onClick={uploadNewerPanel}
-              className="text-sm font-semibold text-[#007aff]"
-            >
-              {panelUploaded ? "June 2026 panel loaded ✓" : "Upload newer panel →"}
-            </button>
-          </div>
-        </section>
-
-        {/* ── Questions for your clinician ──────────────────────────────── */}
-        <SectionLabel>Questions for your clinician</SectionLabel>
-        <section className="mx-4 mb-6 overflow-hidden rounded-2xl bg-white shadow-sm">
-          <div className="divide-y divide-[#f0ede8]">
-            <ClinicalQuestion n={1} text="Is clopidogrel still appropriate given my CYP2C19 *2/*2 result?" tag="Medication" />
-            <ClinicalQuestion n={2} text="Should an alternative antiplatelet be considered given my genotype?" tag="Medication" />
-            <ClinicalQuestion n={3} text={`My ApoB is ${vals.apob} mg/dL — should this trigger a lipid review?`} tag="Blood" />
-            <ClinicalQuestion n={4} text="Is my hs-CRP elevation worth investigating further, or is it incidental?" tag="Blood" />
-            <ClinicalQuestion n={5} text="MTHFR is in my DNA — does this matter if my homocysteine is normal?" tag="DNA" />
-            <ClinicalQuestion
-              n={6}
-              text={hfeWithGenotype
-                ? "My iron markers are elevated and HFE C282Y/C282Y is in my data — is an HFE-related iron overload evaluation appropriate?"
-                : "These iron markers are elevated — should I repeat fasting iron studies and check for inflammation or liver involvement?"}
-              tag="DNA"
-            />
-          </div>
-          <div className="border-t border-[#f0ede8] px-4 py-3">
-            <button
-              onClick={() => setShowSummary(true)}
-              className="flex w-full items-center justify-between text-sm font-semibold text-[#007aff]"
-            >
-              <span>Open full doctor summary</span>
-              <span>›</span>
-            </button>
-          </div>
-        </section>
-
-        {/* ── Evidence trace ────────────────────────────────────────────── */}
-        <SectionLabel>Evidence trace</SectionLabel>
-        <section className="mx-4 mb-6 overflow-hidden rounded-2xl bg-white shadow-sm">
-          <div className="divide-y divide-[#f0ede8]">
-            <TraceRow label="DNA file" value="CYP2C19 · MTHFR · APOE" />
-            <TraceRow label="CYP2C19 diplotype" value="*2/*2 → Poor Metabolizer" />
-            <TraceRow label="Drug flag source" value="CPIC 2022 · PMID 35034351" />
-            <TraceRow label="Blood panel" value={`${panelLabel} · ApoB · LDL-C · hs-CRP · Homocysteine`} />
-            <TraceRow label="Reference population" value="NHANES adult reference ranges" />
-            <TraceRow label="HFE genotype (example)" value="C282Y/C282Y → high-penetrance variant" />
-            <TraceRow label="Iron panel (example)" value="Ferritin 420 µg/L · TSAT 58% · above demo lab ref" />
-            <TraceRow label="HFE evidence source" value="EASL 2022 · iron overload evaluation" />
-            <TraceRow label="Wording" value="AI-assisted · not medical evidence" />
-          </div>
-        </section>
-
-        {/* ── Data controls ─────────────────────────────────────────────── */}
-        <SectionLabel>Data controls</SectionLabel>
-        <section className="mx-4 mb-6 overflow-hidden rounded-2xl bg-white shadow-sm">
-          <div className="divide-y divide-[#f0ede8]">
-            <ActionBtn label="Preview doctor summary" right="›" onClick={() => setShowSummary(true)} />
-            <ActionBtn
-              label="Upload newer blood panel"
-              right={panelUploaded ? "Loaded ✓" : "›"}
-              onClick={uploadNewerPanel}
-            />
-            <ActionBtn
-              label="Export PDF"
-              right="Prototype ›"
-              onClick={() => {}}
-            />
-            <Link href="/upload" className="flex w-full items-center justify-between px-4 py-3.5">
-              <span className="text-sm font-semibold text-[#1c1c1e]">Edit input data</span>
-              <span className="text-[#c7c7cc]">›</span>
-            </Link>
-            <button
-              onClick={() => setDataCleared(true)}
-              className="flex w-full items-center justify-between px-4 py-3.5"
-            >
-              <span className={`text-sm font-semibold ${dataCleared ? "text-[#8e8e93]" : "text-[#ff3b30]"}`}>
-                {dataCleared ? "Data cleared (prototype)" : "Clear all data"}
-              </span>
-              <span className="text-[#c7c7cc]">›</span>
-            </button>
-          </div>
-        </section>
-
-        {/* ── Safety footer ─────────────────────────────────────────────── */}
-        <p className="mb-8 px-4 text-center text-[11px] text-[#c7c7cc]">
-          HealthLens helps you prepare questions for your clinician. Not a diagnosis. Do not start, stop, or change medication without clinician guidance.
-        </p>
-      </div>
-
-      <nav className="fixed bottom-0 left-0 right-0 z-10 border-t border-[#e5e5ea] bg-white/95 px-5 pb-8 pt-2 backdrop-blur">
-        <div className="mx-auto flex max-w-[430px] justify-around">
-          <BottomItem href="/" icon="✦" label="Results" active />
-          <BottomItem href="/blood" icon="🩸" label="Blood" />
-          <BottomItem href="/dna" icon="🧬" label="DNA" />
-          <BottomItem href="/pgx" icon="💊" label="PGx" />
-        </div>
-      </nav>
-    </main>
-  );
-}
-
-// ─── small components ─────────────────────────────────────────────────────────
-
-function SectionLabel({ children }: { children: React.ReactNode }) {
-  return (
-    <p className="mb-2 px-4 text-xs font-semibold uppercase tracking-wider text-[#8e8e93]">{children}</p>
-  );
-}
-
+// ─── chevron ──────────────────────────────────────────────────────────────────
 function ChevronIcon({ open, light = false }: { open: boolean; light?: boolean }) {
   return (
-    <svg
-      className={`mt-1.5 h-4 w-4 shrink-0 transition-transform ${open ? "rotate-180" : ""} ${light ? "text-white/60" : "text-[#c7c7cc]"}`}
-      viewBox="0 0 16 16"
-      fill="none"
-    >
+    <svg className={`mt-1.5 h-4 w-4 shrink-0 transition-transform ${open ? "rotate-180" : ""} ${light ? "text-white/60" : "text-[#c7c7cc]"}`} viewBox="0 0 16 16" fill="none">
       <path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
 
-function InputRow({
-  label,
-  value,
-  tag,
-}: {
-  label: string;
-  value: string;
-  tag?: string;
-}) {
-  return (
-    <div className="flex items-center justify-between px-4 py-3">
-      <span className="text-sm font-semibold text-[#1c1c1e]">{label}</span>
-      <div className="flex items-center gap-2 min-w-0">
-        <span className="text-right text-xs text-[#8e8e93] truncate max-w-[180px]">{value}</span>
-        {tag && (
-          <span className="shrink-0 rounded-full bg-[#34c75920] px-1.5 py-0.5 text-[10px] font-semibold text-[#1d8338]">
-            {tag}
-          </span>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function TrendRow({
-  label,
-  prev,
-  current,
-  unit,
-}: {
-  label: string;
-  prev: number;
-  current: number;
-  unit: string;
-}) {
+// ─── trend row ────────────────────────────────────────────────────────────────
+function TrendRow({ label, prev, current, unit }: { label: string; prev: number; current: number; unit: string }) {
   const delta = current - prev;
   const improved = delta < 0;
   const unchanged = delta === 0;
   const color = unchanged ? "text-[#8e8e93]" : improved ? "text-[#34c759]" : "text-[#ff3b30]";
   const arrow = unchanged ? "→" : improved ? "↓" : "↑";
-
   return (
     <div className="flex items-center justify-between px-4 py-3">
       <span className="text-sm font-semibold text-[#1c1c1e]">{label}</span>
@@ -1030,41 +117,18 @@ function TrendRow({
         <span className="text-[10px] text-[#c7c7cc]">→</span>
         <span className={`text-sm font-bold tabular-nums ${color}`}>{current}</span>
         <span className="text-xs text-[#8e8e93]">{unit}</span>
-        <span className={`text-[11px] font-semibold tabular-nums ${color}`}>
-          {arrow} {unchanged ? "" : Math.abs(delta).toFixed(1)}
-        </span>
+        <span className={`text-[11px] font-semibold tabular-nums ${color}`}>{arrow}{unchanged ? "" : ` ${Math.abs(delta).toFixed(1)}`}</span>
       </div>
     </div>
   );
 }
 
+// ─── small display atoms ──────────────────────────────────────────────────────
 function DataUsedRow({ text }: { text: string }) {
   return (
     <div className="flex items-start gap-2 py-1.5">
       <span className="mt-0.5 shrink-0 text-[10px] font-bold text-[#34c759]">✓</span>
       <p className="text-xs leading-5 text-[#3a3a3c]">{text}</p>
-    </div>
-  );
-}
-
-function RelRow({
-  label,
-  tag,
-  tagColor,
-  desc,
-}: {
-  label: string;
-  tag: string;
-  tagColor: string;
-  desc: string;
-}) {
-  return (
-    <div className="px-4 py-3">
-      <div className="flex items-center gap-2">
-        <span className="text-sm font-semibold text-[#1c1c1e]">{label}</span>
-        <span className={`text-[10px] font-semibold ${tagColor}`}>{tag}</span>
-      </div>
-      <p className="mt-0.5 text-xs leading-5 text-[#8e8e93]">{desc}</p>
     </div>
   );
 }
@@ -1078,53 +142,12 @@ function EvidenceRow({ n, text }: { n: number; text: string }) {
   );
 }
 
-function QuestionRow({ text }: { text: string }) {
-  return (
-    <p className="flex items-start gap-1.5 text-sm leading-5 text-[#3a3a3c]">
-      <span className="mt-0.5 shrink-0 text-[#c7c7cc]">·</span>
-      {text}
-    </p>
-  );
-}
-
-function ClinicalQuestion({ n, text, tag }: { n: number; text: string; tag: string }) {
-  const tagColors: Record<string, string> = {
-    Medication: "bg-[#ff3b3015] text-[#d32f2f]",
-    Blood:      "bg-[#ff950015] text-[#b36200]",
-    DNA:        "bg-[#007aff15] text-[#0055b3]",
-  };
-  return (
-    <div className="flex items-start gap-3 px-4 py-3">
-      <span className="w-4 shrink-0 mt-0.5 text-xs font-bold tabular-nums text-[#c7c7cc]">{n}</span>
-      <p className="flex-1 text-sm leading-5 text-[#3a3a3c]">{text}</p>
-      <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold ${tagColors[tag]}`}>{tag}</span>
-    </div>
-  );
-}
-
 function TraceRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-start justify-between gap-3 px-4 py-3">
       <span className="shrink-0 text-sm font-semibold text-[#1c1c1e]">{label}</span>
       <span className="text-right text-xs text-[#8e8e93]">{value}</span>
     </div>
-  );
-}
-
-function ActionBtn({
-  label,
-  right,
-  onClick,
-}: {
-  label: string;
-  right: string;
-  onClick: () => void;
-}) {
-  return (
-    <button onClick={onClick} className="flex w-full items-center justify-between px-4 py-3.5">
-      <span className="text-sm font-semibold text-[#1c1c1e]">{label}</span>
-      <span className="text-xs text-[#c7c7cc]">{right}</span>
-    </button>
   );
 }
 
@@ -1137,24 +160,1288 @@ function GenotypeDeltaRow({ text }: { text: string }) {
   );
 }
 
-function BottomItem({
-  href,
-  icon,
-  label,
-  active = false,
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return <p className="mb-2 px-4 text-xs font-semibold uppercase tracking-wider text-[#8e8e93]">{children}</p>;
+}
+
+function Tag({ label, className }: { label: string; className: string }) {
+  return <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${className}`}>{label}</span>;
+}
+
+function CardFactRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-start gap-2 py-1">
+      <span className="w-[58px] shrink-0 text-[10px] font-semibold uppercase tracking-wide text-[#c7c7cc]">{label}</span>
+      <span className="text-[11px] leading-4 text-[#3a3a3c]">{value}</span>
+    </div>
+  );
+}
+
+// ─── result card ──────────────────────────────────────────────────────────────
+function ResultCard({
+  highlighted, statusLabel, statusHeaderBg, statusTagClass,
+  dnaBloodLabel, domain, title, summary, dataUsed, question, evidence,
+  isAdded, onViewDetails, onAddToSummary, children,
 }: {
-  href: string;
-  icon: string;
-  label: string;
-  active?: boolean;
+  highlighted?: boolean;
+  statusLabel: string;
+  statusHeaderBg: string;
+  statusTagClass: string;
+  dnaBloodLabel: string;
+  domain: string;
+  title: string;
+  summary: string;
+  dataUsed: string;
+  question: string;
+  evidence: string;
+  isAdded: boolean;
+  onViewDetails: () => void;
+  onAddToSummary: () => void;
+  children?: React.ReactNode;
 }) {
   return (
-    <Link
-      href={href}
-      className={`flex flex-col items-center gap-0.5 text-[10px] font-semibold ${active ? "text-[#007aff]" : "text-[#8e8e93]"}`}
-    >
-      <span className="text-lg leading-none">{icon}</span>
-      <span>{label}</span>
-    </Link>
+    <article className="overflow-hidden rounded-2xl bg-white shadow-sm">
+      {highlighted ? (
+        <div className={`${statusHeaderBg} px-4 pb-3 pt-4`}>
+          <div className="mb-1.5 flex flex-wrap gap-1.5">
+            <Tag label={statusLabel} className="bg-white/20 text-white" />
+            <Tag label={dnaBloodLabel} className="bg-white/15 text-white/90" />
+            <Tag label={domain} className="bg-white/15 text-white/80" />
+          </div>
+          <h3 className="text-[16px] font-bold leading-snug text-white">{title}</h3>
+          <p className="mt-1 text-xs text-white/75">{summary}</p>
+        </div>
+      ) : (
+        <div className="px-4 pb-3 pt-4">
+          <div className="mb-1.5 flex flex-wrap gap-1.5">
+            <Tag label={statusLabel} className={statusTagClass} />
+            <Tag label={dnaBloodLabel} className="bg-[#f0ede8] text-[#8e8e93]" />
+            <Tag label={domain} className="bg-[#f0ede8] text-[#8e8e93]" />
+          </div>
+          <h3 className="text-[15px] font-semibold leading-snug text-[#1c1c1e]">{title}</h3>
+          <p className="mt-1 text-xs text-[#8e8e93]">{summary}</p>
+        </div>
+      )}
+      <div className="border-t border-[#f0ede8] px-4 py-2.5">
+        <CardFactRow label="Data" value={dataUsed} />
+        <CardFactRow label="Ask" value={question} />
+        <CardFactRow label="Source" value={evidence} />
+      </div>
+      {children && <div className="border-t border-[#f0ede8] px-4 py-2.5">{children}</div>}
+      <div className="flex gap-2 border-t border-[#f0ede8] px-4 py-3">
+        <button
+          onClick={onViewDetails}
+          className="flex-1 rounded-xl bg-[#f5f4f0] py-2 text-xs font-semibold text-[#1c1c1e]"
+        >
+          View details
+        </button>
+        <button
+          onClick={onAddToSummary}
+          className={`flex-1 rounded-xl py-2 text-xs font-semibold transition-colors ${
+            isAdded ? "bg-[#34c75920] text-[#1d8338]" : "bg-[#007aff15] text-[#007aff]"
+          }`}
+        >
+          {isAdded ? "✓ In summary" : "Add to summary"}
+        </button>
+      </div>
+    </article>
+  );
+}
+
+// ─── detail sheet shell ───────────────────────────────────────────────────────
+function DetailSheetModal({
+  title, statusLabel, statusTagClass, dnaBloodLabel, domain,
+  isAdded, onAddToSummary, onClose, children,
+}: {
+  title: string;
+  statusLabel: string;
+  statusTagClass: string;
+  dnaBloodLabel: string;
+  domain: string;
+  isAdded: boolean;
+  onAddToSummary: () => void;
+  onClose: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-end bg-black/40" onClick={onClose}>
+      <div
+        className="w-full max-w-[430px] mx-auto max-h-[90vh] overflow-y-auto rounded-t-3xl bg-white shadow-2xl"
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="sticky top-0 z-10 bg-white px-5 pt-5 pb-3 border-b border-[#f0ede8]">
+          <div className="flex items-start justify-between">
+            <div className="flex-1 pr-3">
+              <div className="mb-2 flex flex-wrap gap-1.5">
+                <Tag label={statusLabel} className={statusTagClass} />
+                <Tag label={dnaBloodLabel} className="bg-[#007aff15] text-[#0055b3]" />
+                <Tag label={domain} className="bg-[#f0ede8] text-[#8e8e93]" />
+              </div>
+              <h2 className="text-[17px] font-bold leading-snug text-[#1c1c1e]">{title}</h2>
+            </div>
+            <button onClick={onClose} className="shrink-0 text-sm font-semibold text-[#007aff]">Done</button>
+          </div>
+        </div>
+        <div className="px-5 py-4 space-y-5 text-sm text-[#3a3a3c]">
+          {children}
+        </div>
+        <div className="border-t border-[#e5e5ea] px-5 py-4 grid grid-cols-2 gap-2 pb-8">
+          <button
+            onClick={onAddToSummary}
+            className={`rounded-xl py-3 text-sm font-semibold transition-colors ${
+              isAdded ? "bg-[#34c75920] text-[#1d8338]" : "bg-[#007aff] text-white"
+            }`}
+          >
+            {isAdded ? "✓ In summary" : "Add to summary"}
+          </button>
+          <button onClick={onClose} className="rounded-xl border border-[#d1d1d6] py-3 text-sm font-semibold text-[#1c1c1e]">
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── doctor summary sheet ─────────────────────────────────────────────────────
+function DoctorSummarySheet({
+  vals, panelLabel, hfeWithGenotype, checkedQuestions, onClose,
+}: {
+  vals: DefaultValues;
+  panelLabel: string;
+  hfeWithGenotype: boolean;
+  checkedQuestions: Array<{ id: string; text: string; tag: string }>;
+  onClose: () => void;
+}) {
+  function copyToClipboard() {
+    const lines = [
+      "Patient-prepared discussion summary — HealthLens prototype",
+      "",
+      `Generated from: 1 DNA file (CYP2C19 *2/*2) + 1 blood panel (${panelLabel})`,
+      "Medication on file: Clopidogrel",
+      "",
+      "Blood markers:",
+      `  ApoB: ${vals.apob} mg/dL`,
+      `  LDL-C: ${vals.ldl} mg/dL`,
+      `  hs-CRP: ${vals.hscrp} mg/L`,
+      `  Homocysteine: ${vals.homocysteine} µmol/L`,
+      ...(hfeWithGenotype ? ["  HFE C282Y/C282Y · Ferritin 420 µg/L · TSAT 58% (worked example)"] : []),
+      "",
+      "Questions to bring:",
+      ...checkedQuestions.map((q, i) => `  ${i + 1}. ${q.text}`),
+      "",
+      "Do not start, stop, or change medication based on this summary alone.",
+    ];
+    navigator.clipboard?.writeText(lines.join("\n"));
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end bg-black/40" onClick={onClose}>
+      <div
+        className="w-full max-w-[430px] mx-auto max-h-[88vh] overflow-y-auto rounded-t-3xl bg-white px-5 pt-5 pb-10 shadow-2xl"
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-lg font-bold">Doctor summary</h2>
+          <button onClick={onClose} className="text-sm font-semibold text-[#007aff]">Done</button>
+        </div>
+        <div className="space-y-4 text-sm text-[#3a3a3c]">
+          <div>
+            <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-[#8e8e93]">Generated from</p>
+            <p>1 DNA file · CYP2C19 *2/*2</p>
+            <p>1 blood panel · {panelLabel}</p>
+            <p>Medication: Clopidogrel</p>
+          </div>
+          <div className="border-t border-[#e5e5ea] pt-3">
+            <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-[#8e8e93]">Medication note</p>
+            <p>CYP2C19 *2/*2 predicts substantially reduced clopidogrel activation. Please review whether current therapy is appropriate given this result.</p>
+          </div>
+          <div className="border-t border-[#e5e5ea] pt-3">
+            <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-[#8e8e93]">Blood markers</p>
+            <p>ApoB: {vals.apob} mg/dL · LDL-C: {vals.ldl} mg/dL</p>
+            <p>hs-CRP: {vals.hscrp} mg/L · Homocysteine: {vals.homocysteine} µmol/L</p>
+            {hfeWithGenotype && <p className="mt-1">HFE C282Y/C282Y · Ferritin 420 µg/L · TSAT 58% (worked example)</p>}
+          </div>
+          {checkedQuestions.length > 0 && (
+            <div className="border-t border-[#e5e5ea] pt-3">
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-[#8e8e93]">Questions to bring</p>
+              {checkedQuestions.map((q, i) => (
+                <p key={q.id} className="mt-1 leading-5">{i + 1}. {q.text}</p>
+              ))}
+            </div>
+          )}
+          <div className="border-t border-[#e5e5ea] pt-3">
+            <p className="text-[11px] text-[#8e8e93]">Do not start, stop, or change medication based on this summary alone.</p>
+          </div>
+        </div>
+        <button
+          onClick={copyToClipboard}
+          className="mt-5 w-full rounded-2xl bg-[#1c1c1e] py-3 text-sm font-semibold text-white"
+        >
+          Copy to clipboard
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─── main ─────────────────────────────────────────────────────────────────────
+export default function Home() {
+
+  /* ── state ── */
+  const [activeTab, setActiveTab]         = useState<Tab>("results");
+  const [detailSheet, setDetailSheet]     = useState<DetailSheet>(null);
+  const [vals, setVals]                   = useState<DefaultValues>(DEFAULT_VALUES);
+  const [editingKey, setEditingKey]       = useState<MarkerKey | null>(null);
+  const [editDraft, setEditDraft]         = useState("");
+  const [showSummary, setShowSummary]     = useState(false);
+  const [panelLabel, setPanelLabel]       = useState("May 2026");
+  const [panelUploaded, setPanelUploaded] = useState(false);
+  const [b12, setB12]                     = useState("520");
+  const [folate, setFolate]               = useState("12.4");
+  const [showExtraMarkers, setShowExtraMarkers] = useState(false);
+  const [hfeWithGenotype, setHfeWithGenotype]   = useState(false);
+  const [showHfeTrace, setShowHfeTrace]         = useState(false);
+  const [activeChip, setActiveChip]             = useState("All");
+  const [openEvidence, setOpenEvidence]         = useState<string | null>(null);
+  const [dataCleared, setDataCleared]           = useState(false);
+  const [dnaDeleted, setDnaDeleted]             = useState(false);
+  const [bloodDeleted, setBloodDeleted]         = useState(false);
+  const [qChecked, setQChecked] = useState<Record<string, boolean>>({
+    q1: true, q2: true, q3: false, q4: false, q5: false, q6: false,
+  });
+
+  /* ── URL param: open summary on ?summary=1 ── */
+  useEffect(() => {
+    if (typeof window !== "undefined" && window.location.search.includes("summary=1")) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setShowSummary(true);
+      const url = new URL(window.location.href);
+      url.searchParams.delete("summary");
+      window.history.replaceState(null, "", url.toString());
+    }
+  }, []);
+
+  /* ── helpers ── */
+  function commitEdit() {
+    const n = parseFloat(editDraft);
+    if (!isNaN(n) && n > 0 && editingKey) setVals(prev => ({ ...prev, [editingKey]: n }));
+    setEditingKey(null);
+    setEditDraft("");
+  }
+
+  function uploadNewerPanel() {
+    setVals({ apob: 112, ldl: 138, hscrp: 2.2, homocysteine: 8.1 });
+    setPanelLabel("June 2026");
+    setPanelUploaded(true);
+  }
+
+  /* ── computed ── */
+  const mthfrStatus: "monitor" | "reassuring" =
+    vals.homocysteine >= MARKERS.homocysteine.optimalBelow ? "monitor" : "reassuring";
+  const lipidSev  = lipidSeverity(vals);
+  const nonOptimalCount = (["apob", "ldl", "hscrp"] as MarkerKey[]).filter(k => getStatus(k, vals[k]) !== "optimal").length;
+
+  /* ── questions list (depends on state, computed inline) ── */
+  const questions = [
+    { id: "q1", text: "Is clopidogrel still appropriate given my CYP2C19 *2/*2 result?",            tag: "Medication",   card: "med"   },
+    { id: "q2", text: "Are there medication options that fit my CYP2C19 result better?",             tag: "Medication",   card: "med"   },
+    { id: "q3", text: `My ApoB is ${vals.apob} mg/dL — should this trigger a lipid review?`,        tag: "Blood",        card: "lipid" },
+    { id: "q4", text: "Is my hs-CRP elevation worth investigating further, or is it incidental?",    tag: "Blood",        card: "lipid" },
+    { id: "q5", text: "MTHFR is in my DNA — does this matter if my homocysteine is normal?",        tag: "DNA",          card: "methyl"},
+    {
+      id: "q6",
+      text: hfeWithGenotype
+        ? "My iron markers are elevated and HFE C282Y/C282Y is in my data — is an HFE-related iron overload evaluation appropriate?"
+        : "These iron markers are elevated — should I repeat fasting iron studies and check for inflammation or liver involvement?",
+      tag: "Iron", card: "hfe",
+    },
+  ];
+
+  const checkedQuestions = questions.filter(q => qChecked[q.id]);
+
+  function toggleQuestion(id: string) {
+    setQChecked(prev => ({ ...prev, [id]: !prev[id] }));
+  }
+
+  function addCardToSummary(cardId: string) {
+    const cardQs = questions.filter(q => q.card === cardId);
+    const allChecked = cardQs.every(q => qChecked[q.id]);
+    setQChecked(prev => {
+      const next = { ...prev };
+      cardQs.forEach(q => { next[q.id] = !allChecked; });
+      return next;
+    });
+  }
+
+  function isCardAdded(cardId: string) {
+    const cardQs = questions.filter(q => q.card === cardId);
+    return cardQs.length > 0 && cardQs.every(q => qChecked[q.id]);
+  }
+
+  /* ── category chips config ── */
+  const CHIPS = ["All", "Important", "Monitor", "Reassuring", "Blood-first", "DNA-driven", "Iron"];
+
+  function shouldShowCard(card: DetailSheet) {
+    if (!card || activeChip === "All") return true;
+    if (activeChip === "Important") return card === "med" || (card === "hfe" && hfeWithGenotype);
+    if (activeChip === "Monitor") return card === "lipid" || (card === "methyl" && mthfrStatus === "monitor") || (card === "hfe" && !hfeWithGenotype);
+    if (activeChip === "Reassuring") return card === "methyl" && mthfrStatus === "reassuring";
+    if (activeChip === "Blood-first") return card === "lipid" || (card === "hfe" && !hfeWithGenotype);
+    if (activeChip === "DNA-driven") return card === "med" || (card === "methyl" && mthfrStatus === "monitor");
+    if (activeChip === "Iron") return card === "hfe";
+    return true;
+  }
+
+  /* ═══════════════════════ DETAIL SHEET CONTENT ══════════════════════════ */
+
+  function renderDetailSheet() {
+    if (!detailSheet) return null;
+    const close = () => setDetailSheet(null);
+
+    if (detailSheet === "med") return (
+      <DetailSheetModal
+        title="Discuss clopidogrel with your prescribing clinician"
+        statusLabel="Important" statusTagClass="bg-[#ff3b3020] text-[#d32f2f]"
+        dnaBloodLabel="DNA-driven" domain="Medication"
+        isAdded={isCardAdded("med")} onAddToSummary={() => addCardToSummary("med")} onClose={close}
+      >
+        <div>
+          <p className="mb-1.5 text-xs font-semibold uppercase tracking-wider text-[#8e8e93]">What we saw</p>
+          <div className="divide-y divide-[#f0ede8]">
+            <DataUsedRow text="CYP2C19 genotype: *2/*2 (from DNA file)" />
+            <DataUsedRow text="Medication on file: Clopidogrel" />
+            <DataUsedRow text="Clinical indication: cardiovascular (assumed)" />
+          </div>
+        </div>
+        <div>
+          <p className="mb-1.5 text-xs font-semibold uppercase tracking-wider text-[#8e8e93]">Why it matters</p>
+          <p className="leading-6 text-[#3a3a3c]">
+            Your CYP2C19 result (*2/*2, Poor Metabolizer) suggests substantially reduced ability to activate clopidogrel. This is clinically relevant if you are currently taking it for a cardiovascular indication.
+          </p>
+        </div>
+        <div>
+          <p className="mb-1.5 text-xs font-semibold uppercase tracking-wider text-[#8e8e93]">How DNA changed the output</p>
+          <p className="leading-6 text-[#3a3a3c]">
+            Without the genotype, this would be a standard medication check. With *2/*2, CPIC guidelines classify this as a strong pharmacogenomic signal — the genotype is the primary reason this finding is flagged Important.
+          </p>
+        </div>
+        <div>
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-[#8e8e93]">Evidence trace</p>
+          <div className="divide-y divide-[#f0ede8]">
+            <EvidenceRow n={1} text="CYP2C19 *2/*2 → Poor Metabolizer (CPIC diplotype table)" />
+            <EvidenceRow n={2} text="Poor Metabolizer + clopidogrel → strong CPIC alert" />
+            <EvidenceRow n={3} text="Clopidogrel listed as current medication in your data" />
+          </div>
+        </div>
+        <div>
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-[#8e8e93]">Questions to bring</p>
+          <div className="space-y-1.5">
+            {questions.filter(q => q.card === "med").map(q => (
+              <p key={q.id} className="flex items-start gap-1.5 leading-5 text-[#3a3a3c]">
+                <span className="mt-0.5 shrink-0 text-[#c7c7cc]">·</span>{q.text}
+              </p>
+            ))}
+          </div>
+        </div>
+        <div className="rounded-xl bg-[#f5f4f0] px-3 py-3">
+          <p className="text-xs font-semibold text-[#8e8e93]">Limit</p>
+          <p className="mt-1 text-xs leading-5 text-[#3a3a3c]">Do not start, stop, or change medication based on this result alone. This is a question to bring to your prescribing clinician.</p>
+        </div>
+        <p className="text-[11px] text-[#c7c7cc]">Source: CPIC 2022 · PMID 35034351</p>
+      </DetailSheetModal>
+    );
+
+    if (detailSheet === "lipid") return (
+      <DetailSheetModal
+        title={lipidSev === "monitor" ? "ApoB and LDL-C above optimal — worth discussing" : "Lipid values in borderline range — worth tracking"}
+        statusLabel="Monitor" statusTagClass="bg-[#ff950020] text-[#b36200]"
+        dnaBloodLabel="Blood-first signal" domain="Lipids"
+        isAdded={isCardAdded("lipid")} onAddToSummary={() => addCardToSummary("lipid")} onClose={close}
+      >
+        <div>
+          <p className="mb-1.5 text-xs font-semibold uppercase tracking-wider text-[#8e8e93]">What we saw</p>
+          <div className="divide-y divide-[#f0ede8]">
+            <DataUsedRow text={`ApoB: ${vals.apob} mg/dL (from blood panel · ${panelLabel})`} />
+            <DataUsedRow text={`LDL-C: ${vals.ldl} mg/dL (from blood panel · ${panelLabel})`} />
+            <DataUsedRow text={`hs-CRP: ${vals.hscrp} mg/L (from blood panel · ${panelLabel})`} />
+            <DataUsedRow text="Reference: NHANES adult population ranges" />
+          </div>
+        </div>
+        <div>
+          <p className="mb-1.5 text-xs font-semibold uppercase tracking-wider text-[#8e8e93]">Why it matters</p>
+          <p className="leading-6 text-[#3a3a3c]">Your blood test is the primary signal here. ApoB and LDL-C reflect current lipid burden, while hs-CRP adds an inflammation signal. DNA context does not drive this interpretation.</p>
+        </div>
+        <div>
+          <p className="mb-1.5 text-xs font-semibold uppercase tracking-wider text-[#8e8e93]">How DNA changed (or didn&apos;t change) the output</p>
+          <p className="leading-6 text-[#3a3a3c]">No genetic variant in your file currently changes the interpretation of these blood markers. This is a blood-first signal — the values stand on their own.</p>
+        </div>
+        <div>
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-[#8e8e93]">Marker detail</p>
+          <div className="space-y-4">
+            {(["apob", "ldl", "hscrp"] as MarkerKey[]).map(k => {
+              const cfg = MARKERS[k];
+              const st = getStatus(k, vals[k]);
+              const cl = statusColors(st);
+              return (
+                <div key={k}>
+                  <div className="flex items-baseline justify-between">
+                    <span className="text-sm font-semibold">{cfg.name}</span>
+                    <div className="flex items-baseline gap-1">
+                      <span className={`text-[20px] font-bold tabular-nums leading-none ${cl.value}`}>{vals[k]}</span>
+                      <span className="text-xs text-[#8e8e93]">{cfg.unit}</span>
+                      <span className={`ml-1 rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${cl.badge}`}>{getStatusLabel(st, k)}</span>
+                    </div>
+                  </div>
+                  <SegmentedBar value={vals[k]} markerKey={k} />
+                  <p className="mt-0.5 text-[10px] text-[#c7c7cc]">Optimal &lt;{cfg.optimalBelow} · Borderline {cfg.optimalBelow}–{cfg.borderlineBelow - 1} · High ≥{cfg.borderlineBelow}</p>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+        <div>
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-[#8e8e93]">Trend since last panel</p>
+          <div className="overflow-hidden rounded-xl bg-[#f5f4f0]">
+            <TrendRow label="ApoB" prev={PREV_PANEL.apob} current={vals.apob} unit="mg/dL" />
+            <TrendRow label="LDL-C" prev={PREV_PANEL.ldl} current={vals.ldl} unit="mg/dL" />
+            <TrendRow label="hs-CRP" prev={PREV_PANEL.hscrp} current={vals.hscrp} unit="mg/L" />
+          </div>
+          <p className="mt-1 text-[11px] text-[#c7c7cc]">{PREV_PANEL_LABEL} → {panelLabel}</p>
+        </div>
+        <div>
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-[#8e8e93]">Questions to bring</p>
+          <div className="space-y-1.5">
+            {questions.filter(q => q.card === "lipid").map(q => (
+              <p key={q.id} className="flex items-start gap-1.5 leading-5 text-[#3a3a3c]">
+                <span className="mt-0.5 shrink-0 text-[#c7c7cc]">·</span>{q.text}
+              </p>
+            ))}
+          </div>
+        </div>
+        <p className="text-[11px] text-[#c7c7cc]">Reference: NHANES adult population ranges · lab panel {panelLabel}</p>
+      </DetailSheetModal>
+    );
+
+    if (detailSheet === "methyl") return (
+      <DetailSheetModal
+        title={`MTHFR variant · homocysteine ${vals.homocysteine} µmol/L — ${mthfrStatus === "monitor" ? "elevated" : "normal"}`}
+        statusLabel={mthfrStatus === "monitor" ? "Monitor" : "Reassuring"}
+        statusTagClass={mthfrStatus === "monitor" ? "bg-[#ff950020] text-[#b36200]" : "bg-[#34c75920] text-[#1d8338]"}
+        dnaBloodLabel={mthfrStatus === "monitor" ? "Supported by blood" : "Not currently reflected"}
+        domain="Methylation"
+        isAdded={isCardAdded("methyl")} onAddToSummary={() => addCardToSummary("methyl")} onClose={close}
+      >
+        <div>
+          <p className="mb-1.5 text-xs font-semibold uppercase tracking-wider text-[#8e8e93]">What we saw</p>
+          <div className="divide-y divide-[#f0ede8]">
+            <DataUsedRow text="MTHFR variant: detected in DNA file" />
+            <DataUsedRow text={`Homocysteine: ${vals.homocysteine} µmol/L (from blood panel · ${panelLabel})`} />
+            {showExtraMarkers && <DataUsedRow text={`B12: ${b12} pg/mL · Folate: ${folate} ng/mL`} />}
+          </div>
+        </div>
+        <div>
+          <p className="mb-1.5 text-xs font-semibold uppercase tracking-wider text-[#8e8e93]">Why it matters</p>
+          <p className="leading-6 text-[#3a3a3c]">
+            {mthfrStatus === "monitor"
+              ? `An MTHFR variant appears in your DNA file. Your homocysteine (${vals.homocysteine} µmol/L) is above the normal range (5–15 µmol/L) — the blood marker is elevated, so this DNA context may be more relevant to discuss with your clinician.`
+              : `An MTHFR variant appears in your DNA file. Your homocysteine (${vals.homocysteine} µmol/L) is within the normal range (5–15 µmol/L) — the current blood result is not showing an active signal related to this context.`}
+          </p>
+        </div>
+        <div>
+          <p className="mb-1.5 text-xs font-semibold uppercase tracking-wider text-[#8e8e93]">How DNA changed the output</p>
+          <p className="leading-6 text-[#3a3a3c]">
+            {mthfrStatus === "monitor"
+              ? "The MTHFR variant makes the elevated homocysteine worth discussing with a clinician. Without the variant, it would still be flagged, but the DNA context adds a follow-up angle."
+              : "The MTHFR variant is in the data, but homocysteine is normal, so there is no active blood signal to support a genotype-driven concern at this time."}
+          </p>
+        </div>
+        <div>
+          <p className="mb-1.5 text-xs font-semibold uppercase tracking-wider text-[#8e8e93]">Current value</p>
+          <div className="rounded-xl bg-[#f5f4f0] px-4 py-3">
+            <div className="flex items-baseline justify-between">
+              <span className="text-sm font-semibold">Homocysteine</span>
+              <div className="flex items-baseline gap-1">
+                <span className={`text-[20px] font-bold tabular-nums leading-none ${statusColors(getStatus("homocysteine", vals.homocysteine)).value}`}>{vals.homocysteine}</span>
+                <span className="text-xs text-[#8e8e93]">µmol/L</span>
+              </div>
+            </div>
+            <SegmentedBar value={vals.homocysteine} markerKey="homocysteine" />
+            <p className="mt-1 text-[10px] text-[#c7c7cc]">Normal range: 5–15 µmol/L</p>
+          </div>
+          {mthfrStatus === "reassuring" && (
+            <p className="mt-2 text-xs text-[#8e8e93]">Edit homocysteine above 15 in the Inputs tab to see how this result changes.</p>
+          )}
+        </div>
+        <div>
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-[#8e8e93]">Questions to bring</p>
+          <div className="space-y-1.5">
+            {questions.filter(q => q.card === "methyl").map(q => (
+              <p key={q.id} className="flex items-start gap-1.5 leading-5 text-[#3a3a3c]">
+                <span className="mt-0.5 shrink-0 text-[#c7c7cc]">·</span>{q.text}
+              </p>
+            ))}
+          </div>
+        </div>
+        <p className="text-[11px] text-[#c7c7cc]">Context only · MTHFR clinical utility varies · consult clinician</p>
+      </DetailSheetModal>
+    );
+
+    if (detailSheet === "hfe") return (
+      <DetailSheetModal
+        title="HFE + iron markers — worked example"
+        statusLabel={hfeWithGenotype ? "Important" : "Context"}
+        statusTagClass={hfeWithGenotype ? "bg-[#007aff20] text-[#0055b3]" : "bg-[#f0ede8] text-[#8e8e93]"}
+        dnaBloodLabel={hfeWithGenotype ? "DNA × blood" : "Blood-first signal"}
+        domain="Iron"
+        isAdded={isCardAdded("hfe")} onAddToSummary={() => addCardToSummary("hfe")} onClose={close}
+      >
+        {/* Toggle */}
+        <div>
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-[#8e8e93]">Toggle interpretation</p>
+          <div className="grid grid-cols-2 gap-1 rounded-xl bg-[#f5f4f0] p-1">
+            <button onClick={() => setHfeWithGenotype(false)} className={`rounded-lg py-2 text-xs font-semibold transition-all ${!hfeWithGenotype ? "bg-white shadow-sm text-[#1c1c1e]" : "text-[#8e8e93]"}`}>Blood only</button>
+            <button onClick={() => setHfeWithGenotype(true)}  className={`rounded-lg py-2 text-xs font-semibold transition-all ${hfeWithGenotype ? "bg-[#007aff] text-white shadow-sm" : "text-[#8e8e93]"}`}>Blood + DNA</button>
+          </div>
+        </div>
+        <div>
+          <p className="mb-1.5 text-xs font-semibold uppercase tracking-wider text-[#8e8e93]">What we saw</p>
+          <div className="divide-y divide-[#f0ede8]">
+            <DataUsedRow text="Ferritin: 420 µg/L · above demo lab reference range" />
+            <DataUsedRow text="TSAT: 58% · above demo lab reference range" />
+            {hfeWithGenotype && <DataUsedRow text="HFE C282Y/C282Y (rs1800562 homozygous) — from DNA file" />}
+          </div>
+        </div>
+        <div>
+          <p className="mb-1.5 text-xs font-semibold uppercase tracking-wider text-[#8e8e93]">How DNA changed the output</p>
+          <div className={`rounded-xl px-3 py-3 ${hfeWithGenotype ? "border border-[#007aff30] bg-[#007aff06]" : "bg-[#f5f4f0]"}`}>
+            <p className="text-sm leading-6 text-[#3a3a3c]">
+              {hfeWithGenotype
+                ? "Discuss whether an HFE-related iron overload evaluation is appropriate. HFE C282Y has incomplete penetrance — this does not diagnose iron overload. Ferritin can be elevated for other reasons."
+                : "Discuss repeat fasting iron studies and possible inflammation, liver, and metabolic context with your clinician."}
+            </p>
+            <div className={`mt-2 rounded-lg px-2.5 py-2 ${hfeWithGenotype ? "bg-[#007aff12]" : "bg-white/70"}`}>
+              <p className="mb-0.5 text-[10px] font-semibold uppercase tracking-wider text-[#8e8e93]">Clinician question</p>
+              <p className="text-xs leading-5 text-[#3a3a3c]">
+                {hfeWithGenotype
+                  ? "Is an HFE-related iron overload evaluation appropriate given these iron markers and HFE C282Y/C282Y?"
+                  : "These iron markers are elevated — should I repeat fasting iron studies and check for inflammation or liver involvement?"}
+              </p>
+            </div>
+          </div>
+        </div>
+        {hfeWithGenotype && (
+          <div className="space-y-1.5">
+            <p className="text-xs font-semibold text-[#1c1c1e]">What genotype changed</p>
+            <GenotypeDeltaRow text="Interpretation priority — a specific evaluation pathway is now worth discussing" />
+            <GenotypeDeltaRow text="The clinician question — from broad iron workup to HFE-specific evaluation" />
+            <GenotypeDeltaRow text="Which uncertainty matters — iron overload vs. inflammation vs. other causes" />
+          </div>
+        )}
+        {/* End-to-end trace */}
+        <div>
+          <button onClick={() => setShowHfeTrace(p => !p)} className="flex w-full items-center justify-between py-1">
+            <span className="text-xs font-semibold text-[#007aff]">End-to-end trace</span>
+            <ChevronIcon open={showHfeTrace} />
+          </button>
+          {showHfeTrace && (
+            <div className="mt-3 space-y-3">
+              <div className="divide-y divide-[#f0ede8]">
+                <EvidenceRow n={1} text="elevated_ferritin → ferritin above lab reference range" />
+                <EvidenceRow n={2} text="elevated_transferrin_saturation → TSAT ≥ 45% (EASL 2022)" />
+                {hfeWithGenotype ? (
+                  <>
+                    <EvidenceRow n={3} text="hfe_genotype_relevant → C282Y homozygous → genotype_changes_priority = true" />
+                    <EvidenceRow n={4} text="combined_iron_signal → rules 1+2+3 → priority: clinician discussion" />
+                  </>
+                ) : (
+                  <EvidenceRow n={3} text="blood_only_iron_signal → no genotype → priority: monitor" />
+                )}
+              </div>
+              <div className="rounded-lg bg-[#f5f4f0] px-3 py-2.5">
+                <p className="text-[11px] font-semibold text-[#1c1c1e]">Incomplete penetrance note</p>
+                <p className="mt-0.5 text-[11px] leading-[1.4] text-[#8e8e93]">Most C282Y homozygotes do not develop clinical iron overload. Genotype changes the question — not the diagnosis.</p>
+              </div>
+              <p className="text-[10px] text-[#c7c7cc]">Sources: EASL 2022 · ClinVar pathogenic · ClinGen definitive</p>
+            </div>
+          )}
+        </div>
+        <p className="text-[11px] text-[#c7c7cc]">This is a worked example. HFE data in this prototype is for demonstration only.</p>
+      </DetailSheetModal>
+    );
+
+    return null;
+  }
+
+  /* ═══════════════════════════ TAB CONTENT ══════════════════════════════ */
+
+  function renderResults() {
+    return (
+      <div className="pb-28">
+        {/* Header */}
+        <header className="px-4 pb-4 pt-14">
+          <p className="text-xs font-semibold uppercase tracking-wider text-[#8e8e93]">HealthLens</p>
+          <h1 className="mt-0.5 text-[26px] font-bold leading-tight tracking-tight">Your {panelLabel} check</h1>
+          <p className="mt-1 text-sm text-[#3a3a3c]">DNA + blood results ready</p>
+        </header>
+
+        {/* Snapshot card */}
+        <div className="mx-4 mb-5 grid grid-cols-4 overflow-hidden rounded-2xl bg-white shadow-sm">
+          <div className="px-3 py-3 text-center">
+            <p className="text-[22px] font-bold leading-none text-[#ff3b30]">1</p>
+            <p className="mt-1 text-[10px] font-semibold text-[#1c1c1e]">Discuss</p>
+          </div>
+          <div className="border-l border-[#f0ede8] px-3 py-3 text-center">
+            <p className="text-[22px] font-bold leading-none text-[#ff9500]">{nonOptimalCount}</p>
+            <p className="mt-1 text-[10px] font-semibold text-[#1c1c1e]">Monitor</p>
+          </div>
+          <div className="border-l border-[#f0ede8] px-3 py-3 text-center">
+            <p className={`text-[22px] font-bold leading-none ${mthfrStatus === "monitor" ? "text-[#ff9500]" : "text-[#34c759]"}`}>1</p>
+            <p className="mt-1 text-[10px] font-semibold text-[#1c1c1e]">{mthfrStatus === "monitor" ? "Watch" : "OK"}</p>
+          </div>
+          <div className="border-l border-[#f0ede8] px-3 py-3 text-center">
+            <p className="text-[22px] font-bold leading-none text-[#007aff]">1</p>
+            <p className="mt-1 text-[10px] font-semibold text-[#1c1c1e]">Context</p>
+          </div>
+        </div>
+
+        {/* Category chips */}
+        <div className="mb-4 flex gap-2 overflow-x-auto px-4 pb-1 scrollbar-hide">
+          {CHIPS.map(chip => (
+            <button
+              key={chip}
+              onClick={() => setActiveChip(chip)}
+              className={`shrink-0 rounded-full px-3 py-1.5 text-[11px] font-semibold transition-colors ${
+                activeChip === chip ? "bg-[#1c1c1e] text-white" : "bg-white text-[#8e8e93] shadow-sm"
+              }`}
+            >
+              {chip}
+            </button>
+          ))}
+        </div>
+
+        {/* Result cards */}
+        <div className="flex flex-col gap-3 px-4">
+
+          {/* Card 1 — CYP2C19 */}
+          {shouldShowCard("med") && <ResultCard
+            highlighted
+            statusLabel="Important" statusHeaderBg="bg-[#ff3b30]"
+            statusTagClass="bg-[#ff3b3020] text-[#d32f2f]"
+            dnaBloodLabel="DNA-driven" domain="Medication"
+            title="Discuss clopidogrel with your prescribing clinician"
+            summary="CYP2C19 *2/*2 · Poor Metabolizer · CPIC alert"
+            dataUsed="CYP2C19 *2/*2 + clopidogrel on file"
+            question="Are there medication options that fit my CYP2C19 result better?"
+            evidence="CPIC 2022 pharmacogenetic guideline"
+            isAdded={isCardAdded("med")}
+            onViewDetails={() => setDetailSheet("med")}
+            onAddToSummary={() => addCardToSummary("med")}
+          />}
+
+          {/* Card 2 — Lipids */}
+          {shouldShowCard("lipid") && <ResultCard
+            statusLabel="Monitor" statusHeaderBg="bg-[#ff9500]"
+            statusTagClass="bg-[#ff950020] text-[#b36200]"
+            dnaBloodLabel="Blood-first signal" domain="Lipids"
+            title={lipidSev === "monitor" ? "ApoB and LDL-C above optimal — worth discussing" : "Lipid values in borderline range — worth tracking"}
+            summary={`ApoB ${vals.apob} · LDL-C ${vals.ldl} · hs-CRP ${vals.hscrp}`}
+            dataUsed={`${panelLabel} blood panel · ApoB, LDL-C, hs-CRP`}
+            question={`My ApoB is ${vals.apob} mg/dL — should this trigger a lipid review?`}
+            evidence="Lab panel + adult lipid reference ranges"
+            isAdded={isCardAdded("lipid")}
+            onViewDetails={() => setDetailSheet("lipid")}
+            onAddToSummary={() => addCardToSummary("lipid")}
+          >
+            <div className="flex gap-3">
+              {(["apob", "ldl", "hscrp"] as MarkerKey[]).map(k => {
+                const st = getStatus(k, vals[k]);
+                const cl = statusColors(st);
+                return (
+                  <div key={k} className="flex-1 text-center">
+                    <p className={`text-[17px] font-bold tabular-nums leading-none ${cl.value}`}>{vals[k]}</p>
+                    <p className="mt-0.5 text-[10px] text-[#8e8e93]">{MARKERS[k].name}</p>
+                  </div>
+                );
+              })}
+            </div>
+          </ResultCard>}
+
+          {/* Card 3 — MTHFR */}
+          {shouldShowCard("methyl") && <ResultCard
+            statusLabel={mthfrStatus === "monitor" ? "Monitor" : "Reassuring"}
+            statusHeaderBg={mthfrStatus === "monitor" ? "bg-[#ff9500]" : "bg-[#34c759]"}
+            statusTagClass={mthfrStatus === "monitor" ? "bg-[#ff950020] text-[#b36200]" : "bg-[#34c75920] text-[#1d8338]"}
+            dnaBloodLabel={mthfrStatus === "monitor" ? "Supported by blood" : "Not currently reflected"}
+            domain="Methylation"
+            title={`MTHFR variant · homocysteine ${vals.homocysteine} µmol/L — ${mthfrStatus === "monitor" ? "elevated" : "normal"}`}
+            summary={mthfrStatus === "monitor" ? "Blood marker elevated · DNA context may be relevant" : "Normal homocysteine · no active signal"}
+            dataUsed="MTHFR variant + current homocysteine value"
+            question="Does MTHFR matter if my homocysteine is normal?"
+            evidence="Blood marker context + methylation pathway caveat"
+            isAdded={isCardAdded("methyl")}
+            onViewDetails={() => setDetailSheet("methyl")}
+            onAddToSummary={() => addCardToSummary("methyl")}
+          />}
+
+          {/* Card 4 — HFE */}
+          {shouldShowCard("hfe") && <ResultCard
+            statusLabel={hfeWithGenotype ? "Important" : "Context"}
+            statusHeaderBg={hfeWithGenotype ? "bg-[#007aff]" : "bg-[#8e8e93]"}
+            statusTagClass={hfeWithGenotype ? "bg-[#007aff20] text-[#0055b3]" : "bg-[#f0ede8] text-[#8e8e93]"}
+            dnaBloodLabel={hfeWithGenotype ? "DNA × blood" : "Blood-first signal"}
+            domain="Iron"
+            title="HFE + iron markers — worked example"
+            summary="Shows how genotype context changes the interpretation"
+            dataUsed={hfeWithGenotype ? "Ferritin + TSAT + HFE C282Y/C282Y" : "Ferritin + TSAT only"}
+            question={hfeWithGenotype ? "Is an HFE-related iron overload evaluation appropriate?" : "Should I repeat fasting iron studies first?"}
+            evidence="EASL 2022 + ClinVar / ClinGen context"
+            isAdded={isCardAdded("hfe")}
+            onViewDetails={() => setDetailSheet("hfe")}
+            onAddToSummary={() => addCardToSummary("hfe")}
+          >
+            <div className="grid grid-cols-2 gap-1">
+              <button onClick={() => setHfeWithGenotype(false)} className={`rounded-lg py-1.5 text-[11px] font-semibold transition-all ${!hfeWithGenotype ? "bg-[#1c1c1e] text-white" : "bg-[#f5f4f0] text-[#8e8e93]"}`}>Blood only</button>
+              <button onClick={() => setHfeWithGenotype(true)}  className={`rounded-lg py-1.5 text-[11px] font-semibold transition-all ${hfeWithGenotype ? "bg-[#007aff] text-white" : "bg-[#f5f4f0] text-[#8e8e93]"}`}>Blood + DNA</button>
+            </div>
+          </ResultCard>}
+
+          {!["med", "lipid", "methyl", "hfe"].some(card => shouldShowCard(card as DetailSheet)) && (
+            <div className="rounded-2xl bg-white px-4 py-5 text-center shadow-sm">
+              <p className="text-sm font-semibold text-[#1c1c1e]">No results in this filter</p>
+              <p className="mt-1 text-xs text-[#8e8e93]">Try All or another category chip.</p>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  function renderInputs() {
+    return (
+      <div className="pb-28">
+        <header className="px-4 pb-4 pt-14">
+          <p className="text-xs font-semibold uppercase tracking-wider text-[#8e8e93]">HealthLens</p>
+          <h1 className="mt-0.5 text-[26px] font-bold leading-tight tracking-tight">Your data</h1>
+          <p className="mt-1 text-sm text-[#3a3a3c]">What was used to generate these results</p>
+        </header>
+
+        {/* DNA file */}
+        <SectionLabel>DNA file</SectionLabel>
+        <section className="mx-4 mb-5 overflow-hidden rounded-2xl bg-white shadow-sm">
+          <div className="px-4 py-3 border-b border-[#f0ede8]">
+            <p className="text-sm font-semibold">23andMe raw data</p>
+            <p className="text-xs text-[#8e8e93]">{dnaDeleted ? "Deleted from this prototype session" : "Demo · May 2026"}</p>
+          </div>
+          {dnaDeleted ? (
+            <div className="px-4 py-4">
+              <p className="text-sm font-semibold text-[#1c1c1e]">DNA file removed</p>
+              <p className="mt-1 text-xs leading-5 text-[#8e8e93]">Results stay visible as a prototype snapshot. Restore the demo file to show coverage rows again.</p>
+              <button onClick={() => setDnaDeleted(false)} className="mt-3 text-sm font-semibold text-[#007aff]">Restore demo DNA file</button>
+            </div>
+          ) : (
+            <div className="divide-y divide-[#f0ede8]">
+              {[
+                { gene: "CYP2C19", result: "*2/*2 · Poor Metabolizer", status: "found" },
+                { gene: "MTHFR",   result: "Variant detected",         status: "found" },
+                { gene: "HFE",     result: "C282Y/C282Y (demo)",        status: "demo"  },
+                { gene: "APOE",    result: "Not used in this prototype", status: "n/a"   },
+              ].map(row => (
+                <div key={row.gene} className="flex items-center justify-between px-4 py-2.5">
+                  <span className="text-sm font-semibold text-[#1c1c1e]">{row.gene}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-[#8e8e93]">{row.result}</span>
+                    <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                      row.status === "found" ? "bg-[#34c75920] text-[#1d8338]"
+                      : row.status === "demo" ? "bg-[#007aff15] text-[#0055b3]"
+                      : "bg-[#f0ede8] text-[#8e8e93]"
+                    }`}>{row.status}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+
+        {/* Blood panel */}
+        <SectionLabel>Blood panel</SectionLabel>
+        <section className="mx-4 mb-5 overflow-hidden rounded-2xl bg-white shadow-sm">
+          <div className="px-4 py-3 border-b border-[#f0ede8]">
+            <p className="text-sm font-semibold">{panelLabel} lab report</p>
+            <p className="text-xs text-[#8e8e93]">{bloodDeleted ? "Deleted from this prototype session" : "Demo · 6 markers"}</p>
+          </div>
+          {bloodDeleted ? (
+            <div className="px-4 py-4">
+              <p className="text-sm font-semibold text-[#1c1c1e]">Blood panel removed</p>
+              <p className="mt-1 text-xs leading-5 text-[#8e8e93]">Restore the demo panel to edit marker values and compare trends again.</p>
+              <button onClick={() => setBloodDeleted(false)} className="mt-3 text-sm font-semibold text-[#007aff]">Restore demo blood panel</button>
+            </div>
+          ) : (
+            <div className="divide-y divide-[#f0ede8]">
+              {[
+                { name: "ApoB",        val: `${vals.apob} mg/dL`,        status: getStatus("apob", vals.apob) },
+                { name: "LDL-C",       val: `${vals.ldl} mg/dL`,         status: getStatus("ldl", vals.ldl) },
+                { name: "hs-CRP",      val: `${vals.hscrp} mg/L`,        status: getStatus("hscrp", vals.hscrp) },
+                { name: "Homocysteine",val: `${vals.homocysteine} µmol/L`,status: getStatus("homocysteine", vals.homocysteine) },
+                { name: "Ferritin",    val: "420 µg/L (demo)",           status: "high" as Status },
+                { name: "TSAT",        val: "58% (demo)",                status: "high" as Status },
+              ].map(row => {
+                const dot = row.status === "high" ? "bg-[#ff3b30]" : row.status === "borderline" ? "bg-[#ff9500]" : "bg-[#34c759]";
+                return (
+                  <div key={row.name} className="flex items-center justify-between px-4 py-2.5">
+                    <div className="flex items-center gap-2">
+                      <div className={`h-2 w-2 rounded-full ${dot}`} />
+                      <span className="text-sm font-semibold text-[#1c1c1e]">{row.name}</span>
+                    </div>
+                    <span className="text-xs text-[#8e8e93]">{row.val}</span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </section>
+
+        {/* Medication */}
+        <SectionLabel>Medication on file</SectionLabel>
+        <section className="mx-4 mb-5 overflow-hidden rounded-2xl bg-white shadow-sm">
+          <div className="flex items-center justify-between px-4 py-3">
+            <span className="text-sm font-semibold">Clopidogrel</span>
+            <span className="rounded-full bg-[#34c75920] px-2 py-0.5 text-[10px] font-semibold text-[#1d8338]">On file</span>
+          </div>
+          <p className="border-t border-[#f0ede8] px-4 py-3 text-xs text-[#8e8e93]">Prototype data · editable here · not uploaded anywhere.</p>
+        </section>
+
+        {/* Editable markers */}
+        <SectionLabel>Edit blood values</SectionLabel>
+        <section className="mx-4 mb-5 overflow-hidden rounded-2xl bg-white shadow-sm">
+          <div className="divide-y divide-[#f0ede8]">
+            {(Object.keys(MARKERS) as MarkerKey[]).map(k => {
+              const cfg = MARKERS[k];
+              const status = getStatus(k, vals[k]);
+              const colors = statusColors(status);
+              const isEditing = editingKey === k;
+              return (
+                <div key={k} className="px-4 py-3">
+                  <div className="flex items-baseline justify-between">
+                    <span className="text-sm font-semibold">{cfg.name}</span>
+                    <div className="flex items-baseline gap-2">
+                      {isEditing ? (
+                        <input
+                          autoFocus type="number" step="0.1"
+                          value={editDraft}
+                          onChange={e => setEditDraft(e.target.value)}
+                          onBlur={commitEdit}
+                          onKeyDown={e => e.key === "Enter" && commitEdit()}
+                          className="w-20 text-right text-[20px] font-bold tabular-nums text-[#007aff] focus:outline-none bg-transparent"
+                        />
+                      ) : (
+                        <span className={`text-[20px] font-bold tabular-nums leading-none ${colors.value}`}>{vals[k]}</span>
+                      )}
+                      <span className="text-xs text-[#8e8e93]">{cfg.unit}</span>
+                      {!isEditing && <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${colors.badge}`}>{getStatusLabel(status, k)}</span>}
+                    </div>
+                  </div>
+                  <SegmentedBar value={vals[k]} markerKey={k} />
+                  <div className="mt-1 flex items-center justify-between">
+                    <p className="text-[10px] text-[#c7c7cc]">{k === "homocysteine" ? "Normal 5–15 µmol/L" : `Optimal <${cfg.optimalBelow} · High ≥${cfg.borderlineBelow}`}</p>
+                    {isEditing
+                      ? <button onClick={commitEdit} className="text-[11px] font-semibold text-[#007aff]">Update</button>
+                      : <button onClick={() => { setEditingKey(k); setEditDraft(String(vals[k])); }} className="text-[11px] font-semibold text-[#007aff]">Edit</button>}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          {!showExtraMarkers ? (
+            <div className="border-t border-[#f0ede8] px-4 py-3">
+              <button onClick={() => setShowExtraMarkers(true)} className="flex items-center gap-1.5 text-sm font-semibold text-[#007aff]">
+                <span>＋</span> Add B12 / folate
+              </button>
+            </div>
+          ) : (
+            <div className="border-t border-[#f0ede8] px-4 py-4 space-y-3">
+              <div className="grid grid-cols-2 gap-2">
+                <label className="text-xs font-semibold text-[#8e8e93]">
+                  B12 (pg/mL)
+                  <input type="number" value={b12} onChange={e => setB12(e.target.value)} className="mt-1 w-full rounded-xl bg-[#f5f4f0] px-3 py-2 text-sm font-bold text-[#1c1c1e] focus:outline-none" />
+                </label>
+                <label className="text-xs font-semibold text-[#8e8e93]">
+                  Folate (ng/mL)
+                  <input type="number" value={folate} onChange={e => setFolate(e.target.value)} className="mt-1 w-full rounded-xl bg-[#f5f4f0] px-3 py-2 text-sm font-bold text-[#1c1c1e] focus:outline-none" />
+                </label>
+              </div>
+              <p className="text-[11px] text-[#c7c7cc]">B12 {b12} pg/mL · Folate {folate} ng/mL — context only</p>
+            </div>
+          )}
+        </section>
+
+        {/* Panel comparison */}
+        <SectionLabel>Panel comparison</SectionLabel>
+        <section className="mx-4 mb-5 overflow-hidden rounded-2xl bg-white shadow-sm">
+          <div className="px-4 pt-3 pb-1">
+            <p className="text-xs text-[#8e8e93]">{PREV_PANEL_LABEL} → {panelLabel}</p>
+          </div>
+          <div className="divide-y divide-[#f0ede8]">
+            <TrendRow label="ApoB"   prev={PREV_PANEL.apob}  current={vals.apob}  unit="mg/dL" />
+            <TrendRow label="LDL-C"  prev={PREV_PANEL.ldl}   current={vals.ldl}   unit="mg/dL" />
+            <TrendRow label="hs-CRP" prev={PREV_PANEL.hscrp} current={vals.hscrp} unit="mg/L"  />
+          </div>
+          <div className="border-t border-[#f0ede8] px-4 py-3">
+            <button onClick={uploadNewerPanel} className="text-sm font-semibold text-[#007aff]">
+              {panelUploaded ? "June 2026 panel loaded ✓" : "Upload newer panel →"}
+            </button>
+          </div>
+        </section>
+      </div>
+    );
+  }
+
+  function renderQuestions() {
+    const groups = [
+      { tag: "Medication",   qs: questions.filter(q => q.tag === "Medication") },
+      { tag: "Blood",        qs: questions.filter(q => q.tag === "Blood") },
+      { tag: "DNA",          qs: questions.filter(q => q.tag === "DNA") },
+      { tag: "Iron",         qs: questions.filter(q => q.tag === "Iron") },
+    ];
+    const tagColors: Record<string, string> = {
+      Medication: "bg-[#ff3b3015] text-[#d32f2f]",
+      Blood:      "bg-[#ff950015] text-[#b36200]",
+      DNA:        "bg-[#007aff15] text-[#0055b3]",
+      Iron:       "bg-[#34c75915] text-[#1d8338]",
+    };
+
+    return (
+      <div className="pb-28">
+        <header className="px-4 pb-4 pt-14">
+          <p className="text-xs font-semibold uppercase tracking-wider text-[#8e8e93]">HealthLens</p>
+          <h1 className="mt-0.5 text-[26px] font-bold leading-tight tracking-tight">Questions to bring</h1>
+          <p className="mt-1 text-sm text-[#3a3a3c]">{checkedQuestions.length} of {questions.length} selected for your summary</p>
+        </header>
+
+        {groups.map(({ tag, qs }) => (
+          <div key={tag} className="mb-4">
+            <SectionLabel>{tag}</SectionLabel>
+            <section className="mx-4 overflow-hidden rounded-2xl bg-white shadow-sm">
+              <div className="divide-y divide-[#f0ede8]">
+                {qs.map(q => (
+                  <label key={q.id} className="flex cursor-pointer items-start gap-3 px-4 py-3">
+                    <input
+                      type="checkbox"
+                      checked={!!qChecked[q.id]}
+                      onChange={() => toggleQuestion(q.id)}
+                      className="mt-0.5 h-4 w-4 shrink-0 accent-[#007aff]"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm leading-5 text-[#1c1c1e]">{q.text}</p>
+                      <p className="mt-0.5 text-[11px] text-[#c7c7cc]">from {q.card} result</p>
+                    </div>
+                    <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold ${tagColors[q.tag]}`}>{q.tag}</span>
+                  </label>
+                ))}
+              </div>
+            </section>
+          </div>
+        ))}
+
+        <div className="mx-4 grid grid-cols-2 gap-2">
+          <button
+            onClick={() => setShowSummary(true)}
+            className="rounded-2xl bg-[#1c1c1e] py-3 text-sm font-semibold text-white"
+          >
+            Preview summary
+          </button>
+          <button
+            onClick={() => {
+              const lines = [
+                "Patient-prepared discussion summary",
+                "",
+                ...checkedQuestions.map((q, i) => `${i + 1}. ${q.text}`),
+                "",
+                "Do not start, stop, or change medication based on this summary alone.",
+              ];
+              navigator.clipboard?.writeText(lines.join("\n"));
+            }}
+            className="rounded-2xl border border-[#d1d1d6] py-3 text-sm font-semibold text-[#1c1c1e]"
+          >
+            Copy to clipboard
+          </button>
+        </div>
+        <p className="mt-3 px-4 text-center text-[11px] text-[#c7c7cc]">
+          Tap a card result card&apos;s &quot;Add to summary&quot; to pre-select its questions
+        </p>
+      </div>
+    );
+  }
+
+  function renderEvidence() {
+    const consumerCards = [
+      {
+        id: "cpic",
+        title: "CPIC 2022 — CYP2C19 × clopidogrel",
+        source: "Clinical Pharmacogenetics Implementation Consortium",
+        why: "Guideline used to classify CYP2C19 *2/*2 + clopidogrel as a strong pharmacogenomic alert. PMID 35034351.",
+        badge: "Drug-gene",
+      },
+      {
+        id: "nhanes",
+        title: "Population reference ranges",
+        source: "NHANES adult lipid reference data",
+        why: "Used to classify ApoB, LDL-C, hs-CRP, and homocysteine values relative to a general adult population.",
+        badge: "Lab ranges",
+      },
+      {
+        id: "easl",
+        title: "EASL 2022 — HFE iron metabolism",
+        source: "European Association for the Study of the Liver",
+        why: "Used for TSAT threshold (≥45%) and to frame the HFE worked example. This is a demonstration of evidence-driven output framing.",
+        badge: "Iron",
+      },
+      {
+        id: "clinvar",
+        title: "ClinVar / ClinGen — HFE C282Y",
+        source: "ClinVar pathogenic classification · ClinGen definitive gene-disease",
+        why: "HFE C282Y/C282Y is classified as pathogenic for hereditary hemochromatosis risk. ClinGen classifies the HFE–iron overload association as definitive.",
+        badge: "Genetics",
+      },
+    ];
+
+    const advancedTraces = [
+      {
+        id: "cyp2c19",
+        title: "CYP2C19 + clopidogrel — full trace",
+        rows: [
+          { label: "Input: DNA diplotype", value: "*2/*2" },
+          { label: "Phenotype lookup", value: "*2/*2 → Poor Metabolizer (CPIC table)" },
+          { label: "Rule fired", value: "Poor Metabolizer + clopidogrel → strong alert" },
+          { label: "Evidence source", value: "CPIC 2022 · PMID 35034351" },
+          { label: "Conflict check", value: "Indication assumed cardiovascular — not confirmed" },
+          { label: "Output", value: "Priority: Important · DNA-driven · Discuss with clinician" },
+          { label: "Safety boundary", value: "Do not instruct user to change medication" },
+        ],
+      },
+      {
+        id: "lipids",
+        title: "Lipid markers — full trace",
+        rows: [
+          { label: "Input: ApoB",    value: `${vals.apob} mg/dL` },
+          { label: "Input: LDL-C",   value: `${vals.ldl} mg/dL` },
+          { label: "Input: hs-CRP",  value: `${vals.hscrp} mg/L` },
+          { label: "Rule fired",     value: "ApoB ≥ 120 → borderline-high flag" },
+          { label: "DNA check",      value: "No variant in file changes lipid interpretation" },
+          { label: "Evidence source",value: "NHANES adult reference · lab panel" },
+          { label: "Output",         value: "Priority: Monitor · Blood-first signal" },
+        ],
+      },
+      {
+        id: "hfe",
+        title: "HFE + iron markers — full trace",
+        rows: [
+          { label: "Input: Ferritin",    value: "420 µg/L · above demo lab ref" },
+          { label: "Input: TSAT",        value: "58% · above demo lab ref (≥45% threshold)" },
+          { label: "Input: HFE variant", value: hfeWithGenotype ? "C282Y/C282Y (rs1800562 homozygous)" : "Not in this scenario" },
+          { label: "Rules fired",        value: hfeWithGenotype ? "elevated_ferritin + elevated_tsat + hfe_genotype → clinician discussion" : "elevated_ferritin + elevated_tsat → monitor (no genotype)" },
+          { label: "Conflict check",     value: "Ferritin non-specific · C282Y incomplete penetrance · lab ref variability" },
+          { label: "Evidence source",    value: "EASL 2022 · ClinVar pathogenic · ClinGen definitive" },
+          { label: "Output",             value: hfeWithGenotype ? "Priority: Important · DNA × blood" : "Priority: Monitor · Blood-first signal" },
+        ],
+      },
+    ];
+
+    return (
+      <div className="pb-28">
+        <header className="px-4 pb-4 pt-14">
+          <p className="text-xs font-semibold uppercase tracking-wider text-[#8e8e93]">HealthLens</p>
+          <h1 className="mt-0.5 text-[26px] font-bold leading-tight tracking-tight">Evidence</h1>
+          <p className="mt-1 text-sm text-[#3a3a3c]">Sources used to generate your results</p>
+        </header>
+
+        <SectionLabel>Evidence used</SectionLabel>
+        <div className="mx-4 mb-5 flex flex-col gap-3">
+          {consumerCards.map(card => (
+            <div key={card.id} className="overflow-hidden rounded-2xl bg-white shadow-sm px-4 py-4">
+              <div className="flex items-start justify-between gap-2 mb-1.5">
+                <p className="text-sm font-semibold text-[#1c1c1e]">{card.title}</p>
+                <span className="shrink-0 rounded-full bg-[#007aff15] px-2 py-0.5 text-[10px] font-semibold text-[#0055b3]">{card.badge}</span>
+              </div>
+              <p className="text-[11px] font-semibold text-[#8e8e93] mb-1">{card.source}</p>
+              <p className="text-xs leading-5 text-[#3a3a3c]">{card.why}</p>
+            </div>
+          ))}
+        </div>
+
+        <SectionLabel>Advanced trace</SectionLabel>
+        <section className="mx-4 mb-5 overflow-hidden rounded-2xl bg-white shadow-sm">
+          {advancedTraces.map((trace, i) => (
+            <div key={trace.id} className={i > 0 ? "border-t border-[#f0ede8]" : ""}>
+              <button
+                onClick={() => setOpenEvidence(prev => prev === trace.id ? null : trace.id)}
+                className="flex w-full items-center justify-between px-4 py-3.5"
+              >
+                <span className="text-sm font-semibold text-[#1c1c1e]">{trace.title}</span>
+                <ChevronIcon open={openEvidence === trace.id} />
+              </button>
+              {openEvidence === trace.id && (
+                <div className="border-t border-[#f0ede8]">
+                  {trace.rows.map(row => <TraceRow key={row.label} label={row.label} value={row.value} />)}
+                </div>
+              )}
+            </div>
+          ))}
+        </section>
+
+        <div className="mx-4 rounded-2xl bg-white px-4 py-4 shadow-sm">
+          <p className="text-xs font-semibold text-[#1c1c1e]">About AI wording</p>
+          <p className="mt-1 text-xs leading-5 text-[#8e8e93]">
+            AI is used to turn structured rule-engine findings into plain-language explanations. It is not the medical evidence source — the source is always a named guideline or reference dataset.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  function renderData() {
+    return (
+      <div className="pb-28">
+        <header className="px-4 pb-4 pt-14">
+          <p className="text-xs font-semibold uppercase tracking-wider text-[#8e8e93]">HealthLens</p>
+          <h1 className="mt-0.5 text-[26px] font-bold leading-tight tracking-tight">Data &amp; privacy</h1>
+          <p className="mt-1 text-sm text-[#3a3a3c]">Export, delete, and understand your data</p>
+        </header>
+
+        <SectionLabel>Export</SectionLabel>
+        <section className="mx-4 mb-5 overflow-hidden rounded-2xl bg-white shadow-sm">
+          <div className="divide-y divide-[#f0ede8]">
+            <button onClick={() => setShowSummary(true)} className="flex w-full items-center justify-between px-4 py-3.5">
+              <span className="text-sm font-semibold text-[#1c1c1e]">Export doctor summary</span>
+              <span className="text-xs text-[#007aff]">Preview ›</span>
+            </button>
+            <div className="flex items-center justify-between px-4 py-3.5">
+              <span className="text-sm font-semibold text-[#1c1c1e]">Export PDF report</span>
+              <span className="text-xs text-[#c7c7cc]">Coming in MVP</span>
+            </div>
+            <div className="flex items-center justify-between px-4 py-3.5">
+              <span className="text-sm font-semibold text-[#1c1c1e]">Download raw data JSON</span>
+              <span className="text-xs text-[#c7c7cc]">Coming in MVP</span>
+            </div>
+          </div>
+        </section>
+
+        <SectionLabel>Data management</SectionLabel>
+        <section className="mx-4 mb-5 overflow-hidden rounded-2xl bg-white shadow-sm">
+          <div className="divide-y divide-[#f0ede8]">
+            <div className="flex items-center justify-between px-4 py-3.5">
+              <div>
+                <p className="text-sm font-semibold text-[#1c1c1e]">DNA file</p>
+                <p className="text-xs text-[#8e8e93]">{dnaDeleted ? "Deleted from this prototype session" : "23andMe raw data · demo"}</p>
+              </div>
+              <button
+                onClick={() => setDnaDeleted(prev => !prev)}
+                className={`text-xs font-semibold ${dnaDeleted ? "text-[#007aff]" : "text-[#ff3b30]"}`}
+              >
+                {dnaDeleted ? "Restore" : "Delete"}
+              </button>
+            </div>
+            <div className="flex items-center justify-between px-4 py-3.5">
+              <div>
+                <p className="text-sm font-semibold text-[#1c1c1e]">Blood panel</p>
+                <p className="text-xs text-[#8e8e93]">{bloodDeleted ? "Deleted from this prototype session" : `${panelLabel} · 6 markers`}</p>
+              </div>
+              <button
+                onClick={() => setBloodDeleted(prev => !prev)}
+                className={`text-xs font-semibold ${bloodDeleted ? "text-[#007aff]" : "text-[#ff3b30]"}`}
+              >
+                {bloodDeleted ? "Restore" : "Delete"}
+              </button>
+            </div>
+            <button
+              onClick={() => {
+                setVals(DEFAULT_VALUES);
+                setPanelLabel("May 2026");
+                setPanelUploaded(false);
+                setHfeWithGenotype(false);
+                setQChecked({ q1: true, q2: true, q3: false, q4: false, q5: false, q6: false });
+                setDataCleared(true);
+                setDnaDeleted(true);
+                setBloodDeleted(true);
+              }}
+              className="flex w-full items-center justify-between px-4 py-3.5"
+            >
+              <span className="text-sm font-semibold text-[#1c1c1e]">Clear all demo data</span>
+              <span className={`text-xs font-semibold ${dataCleared ? "text-[#34c759]" : "text-[#ff9500]"}`}>
+                {dataCleared ? "Cleared ✓" : "Reset →"}
+              </span>
+            </button>
+          </div>
+        </section>
+
+        <SectionLabel>Privacy</SectionLabel>
+        <section className="mx-4 mb-5 overflow-hidden rounded-2xl bg-white shadow-sm">
+          <div className="divide-y divide-[#f0ede8]">
+            <div className="px-4 py-3">
+              <p className="text-sm font-semibold text-[#1c1c1e]">Data storage</p>
+              <p className="mt-0.5 text-xs leading-5 text-[#8e8e93]">Prototype only. All data stays in your browser session. Nothing is sent to external servers.</p>
+            </div>
+            <div className="px-4 py-3">
+              <p className="text-sm font-semibold text-[#1c1c1e]">AI wording</p>
+              <p className="mt-0.5 text-xs leading-5 text-[#8e8e93]">AI is used to turn structured findings into plain-language explanations. It is not the medical evidence source.</p>
+            </div>
+            <div className="px-4 py-3">
+              <p className="text-sm font-semibold text-[#1c1c1e]">Medical disclaimer</p>
+              <p className="mt-0.5 text-xs leading-5 text-[#8e8e93]">This prototype is not a diagnosis and should not be used to start, stop, or change medication. Always consult your prescribing clinician.</p>
+            </div>
+          </div>
+        </section>
+      </div>
+    );
+  }
+
+  /* ═══════════════════════════ RENDER ════════════════════════════════════ */
+  return (
+    <main className="min-h-screen bg-[#f5f4f0] text-[#1c1c1e]">
+      {showSummary && (
+        <DoctorSummarySheet
+          vals={vals}
+          panelLabel={panelLabel}
+          hfeWithGenotype={hfeWithGenotype}
+          checkedQuestions={checkedQuestions}
+          onClose={() => setShowSummary(false)}
+        />
+      )}
+      {renderDetailSheet()}
+
+      <div className="mx-auto w-full max-w-[430px]">
+        {activeTab === "results"   && renderResults()}
+        {activeTab === "inputs"    && renderInputs()}
+        {activeTab === "questions" && renderQuestions()}
+        {activeTab === "evidence"  && renderEvidence()}
+        {activeTab === "data"      && renderData()}
+      </div>
+
+      {/* 5-tab bottom nav */}
+      <nav className="fixed bottom-0 left-0 right-0 z-10 border-t border-[#e5e5ea] bg-white/95 backdrop-blur">
+        <div className="mx-auto flex max-w-[430px] justify-around px-1 pb-7 pt-2">
+          {(
+            [
+              { id: "results",   icon: "✦", label: "Results"   },
+              { id: "inputs",    icon: "＋", label: "Inputs"    },
+              { id: "questions", icon: "?", label: "Questions" },
+              { id: "evidence",  icon: "≡", label: "Evidence"  },
+              { id: "data",      icon: "◎", label: "Data"      },
+            ] as { id: Tab; icon: string; label: string }[]
+          ).map(item => (
+            <button
+              key={item.id}
+              onClick={() => setActiveTab(item.id)}
+              className={`flex flex-col items-center gap-0.5 px-2 text-[10px] font-semibold transition-colors ${
+                activeTab === item.id ? "text-[#007aff]" : "text-[#8e8e93]"
+              }`}
+            >
+              <span className="text-[18px] leading-none">{item.icon}</span>
+              <span>{item.label}</span>
+            </button>
+          ))}
+        </div>
+      </nav>
+    </main>
   );
 }
